@@ -4,8 +4,30 @@
 #include <SDL2/SDL_events.h>
 
 // public, thread-safe messaging api
-void gfx_create_window(int w, int h, int fs, void (*cb)(int, void *), void * p);
-void gfx_flush(void (*cb)(void *), void * p);
+void gfx_create_window(
+    int width,
+    int height,
+    int fullscreen,
+    void (* callback)(int success, void * userdata),
+    void * userdata
+);
+
+void gfx_flush(
+    void (* callback)(void * userdata),
+    void * userdata
+);
+
+void gfx_load_texture_rgba(
+    int size_x,
+    int size_y,
+    void * pixels,
+    void (* callback)(unsigned int tex_id, void * userdata),
+    void * userdata
+);
+
+void gfx_unload_texture(
+    unsigned int tex_id
+);
 
 // only used by main task
 void gfx_init();

@@ -37,6 +37,17 @@ extern void script_input_deinit();
 extern int lapi_open_gfx(lua_State * L);
 extern int lapi_open_input(lua_State * L);
 extern int lapi_open_timer(lua_State * L);
+extern int lapi_open_Image(lua_State * L);
+extern int lapi_open_Font(lua_State * L);
+
+static luaL_Reg module_loaders[] = {
+  { "input", lapi_open_input },
+  {   "gfx", lapi_open_gfx   },
+  { "timer", lapi_open_timer },
+  { "Image", lapi_open_Image },
+  {  "Font", lapi_open_Font  },
+  { NULL, NULL },
+};
 
 int script_task_fn(void * _) {
   const char * script_name = (const char *)_;
@@ -48,9 +59,7 @@ int script_task_fn(void * _) {
 
   lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");
-      lua_pushcfunction(L, lapi_open_input); lua_setfield(L, -2, "input");
-      lua_pushcfunction(L, lapi_open_gfx); lua_setfield(L, -2, "gfx");
-      lua_pushcfunction(L, lapi_open_timer); lua_setfield(L, -2, "timer");
+      luaL_register(L, NULL, module_loaders);
       lua_pop(L, 2);
 
   if(luaL_dofile(L, script_name)) {

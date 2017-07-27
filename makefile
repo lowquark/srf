@@ -7,7 +7,9 @@ srf: srf.c \
 		 script/script.c \
 		 script/gfx.c \
 		 script/input.c \
-		 script/timer.c
+		 script/timer.c \
+		 script/Font.c \
+		 script/Image.c
 	
 	gcc -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU -I.
 
