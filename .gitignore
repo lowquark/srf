@@ -1,3 +1,5 @@
 srf
 *.swp
 *.swo
+*.o
+valgrind_suppressions.txt

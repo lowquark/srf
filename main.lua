@@ -8,15 +8,15 @@ local timer = require 'timer'
 local gfx = require 'gfx'
 local input = require 'input'
 
-local Image = require 'Image'
-local Font = require 'Font'
+local image = require 'image'
+local font = require 'font'
+
+local Vec2 = function(x, y) return { x = x, y = y } end
 
 local tile_map = {
-  tiles = nil,
-  tile_size_x = 16,
-  tile_size_y = 16,
-  size_x = 2,
-  size_y = 2,
+  tiles = 'file://super_tiles',
+  tile_size = Vec2(16, 16),
+  size = Vec2(2, 2),
   tiles = { 1, 2, 3, 4, },
   fg_colors = { 0xFF, 0xFF, 0xFF, 0xFF,
                 0xFF, 0xFF, 0xFF, 0xFF, 
@@ -29,7 +29,7 @@ local tile_map = {
 }
 
 local label = {
-  font = Font('KingThings-Exeter.ttf', 18),
+  font = 'file://KingThings-Exeter/18',
   x = 70,
   y = 20,
   text = 'asdfasdf',
@@ -53,13 +53,6 @@ gfx.create_window(16*16, 16*16, false, function (status)
   if not status then print('failed to create window...!') return end
 
   print('window created!')
-
-  gfx.load_texture(Image('tiles.png'), function(tex)
-    tile_map.tiles = tex
-    print('tex_id?', tex)
-
-    gfx.unload_texture(tex)
-  end)
 
   draw()
 end)

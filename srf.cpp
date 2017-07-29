@@ -1,21 +1,14 @@
 
 #include <SDL2/SDL.h>
 
-#include <queue.h>
-
-#include <script/script.h>
-#include <gfx/gfx.h>
-
-#include <assert.h>
+#include <script/script.hpp>
+#include <gfx/gfx.hpp>
 
 int main(int argc, char ** argv) {
-  squeue_test();
-  queue_test();
-
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
-  gfx_init();
-  script_init();
+  gfx::init();
+  script::init();
 
   int run = 1;
   while(run) {
@@ -33,13 +26,13 @@ int main(int argc, char ** argv) {
         }
       }
 
-      if(script_handle_sdl_event(&event)) {}
-      else if(gfx_handle_sdl_event(&event)) {}
+      if(script::handle_sdl_event(&event)) {}
+      else if(gfx::handle_sdl_event(&event)) {}
     }
   }
 
-  script_deinit();
-  gfx_deinit();
+  script::deinit();
+  gfx::deinit();
 
   SDL_Quit();
 }
