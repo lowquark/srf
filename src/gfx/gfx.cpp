@@ -8,7 +8,9 @@
 #include <cassert>
 
 #include <queue>
-#include <Image.hpp>
+#include <util/Image.hpp>
+#include <gfx/draw.hpp>
+#include <gfx/TileMap.hpp>
 
 namespace gfx {
   static SDL_Window * window = NULL;
@@ -16,15 +18,23 @@ namespace gfx {
 
   static Uint32 gfx_event = (Uint32)-1;
 
+  TileMapShader tile_map_shader;
+
   void init() {
     if(gfx_event == (Uint32)-1) {
       gfx_event = SDL_RegisterEvents(1);
       assert(gfx_event != (Uint32)-1);
     }
   }
+
+  static void deinit_gl() {
+    tile_map_shader.unload();
+  }
+
   void deinit() {
     if(window) {
       if(gl_ctx) {
+        deinit_gl();
         SDL_GL_DeleteContext(gl_ctx);
         gl_ctx = NULL;
       }
@@ -34,8 +44,55 @@ namespace gfx {
     }
   }
 
+  static void init_gl(Vec2u window_size) {
+    glewInit();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    SDL_GL_SwapWindow(window);
+
+    draw::set_window_size(window_size);
+
+    tile_map_shader.load("#version 130\n\n"
+                         "in vec2 vertex_pos;\n"
+                         "in vec2 vertex_texcoord;\n"
+                         "varying vec2 texcoord;\n"
+                         "void main() {\n"
+                         "gl_Position.xy = vertex_pos;\n"
+                         "gl_Position.z = 0.0;\n"
+                         "gl_Position.w = 1.0;\n"
+                         "texcoord = vertex_texcoord;\n"
+                         "}",
+                         "#version 130\n\n"
+                         "uniform sampler2D tile_set;\n"
+                         "uniform sampler2D fg_color;\n"
+                         "uniform sampler2D bg_color;\n"
+                         "uniform sampler2D index_data;\n"
+                         "uniform ivec2 tile_map_size;\n"
+                         "uniform ivec2 tile_set_size;\n"
+                         "\n"
+                         "varying vec2 texcoord;\n"
+                         "void main() { \n"
+                         "vec4 fg = texture(fg_color, texcoord);\n"
+                         "vec4 bg = texture(bg_color, texcoord);\n"
+                         "vec2 tile_set_coord = texture(index_data, texcoord).xy * 255/256;\n"
+                         "\n"
+                         "vec2 tile_local_texcoord = texcoord*tile_map_size - floor(texcoord*tile_map_size);\n"
+                         "vec2 tile_set_texcoord = tile_set_coord + tile_local_texcoord/tile_set_size;\n"
+                         "vec4 tile_color = texture(tile_set, tile_set_texcoord);\n"
+                         "\n"
+                         "if(abs(tile_color.r - tile_color.g) < 0.001 && \n"
+                         "   abs(tile_color.g - tile_color.b) < 0.001) {\n"
+                         "gl_FragColor = bg + tile_color.r*(fg - bg);\n"
+                         "} else {\n"
+                         "gl_FragColor = tile_color;\n"
+                         "}\n"
+                         "}\n"); // lol
+  }
+
   static int create_window(const char * name, int w, int h) {
     if(window) {
+      draw::set_window_size(Vec2u(0, 0));
       SDL_DestroyWindow(window);
       window = NULL;
     }
@@ -53,14 +110,11 @@ namespace gfx {
       gl_ctx = SDL_GL_CreateContext(window);
 
       if(gl_ctx) {
-        glewInit();
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        SDL_GL_SwapWindow(window);
-
+        init_gl(Vec2u(w, h));
         return 1;
       }
+
+      draw::set_window_size(Vec2u(0, 0));
 
       SDL_DestroyWindow(window);
       window = NULL;

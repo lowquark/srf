@@ -2,6 +2,11 @@
 srf: build/srf.o \
 	   build/Image.o \
 		 build/gfx/gfx.o \
+		 build/gfx/draw.o \
+		 build/gfx/TileMap.o \
+		 build/gfx/gl/Texture.o \
+		 build/gfx/gl/Program.o \
+		 build/gfx/gl/Buffer.o \
 		 build/script/luaref.o \
 		 build/script/event.o \
 		 build/script/script.o \

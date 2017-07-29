@@ -2,7 +2,6 @@
 #define GFX_H
 
 #include <SDL2/SDL_events.h>
-#include <Image.hpp>
 #include <memory>
 
 namespace gfx {
