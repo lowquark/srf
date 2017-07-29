@@ -1,21 +1,24 @@
 
-srf: srf.o \
-	   Image.o \
-		 gfx/gfx.o \
-		 script/luaref.o \
-		 script/event.o \
-		 script/script.o \
-		 script/gfx.o \
-		 script/input.o \
-		 script/timer.o \
-		 script/font.o \
-		 script/image.o
+srf: build/srf.o \
+	   build/Image.o \
+		 build/gfx/gfx.o \
+		 build/script/luaref.o \
+		 build/script/event.o \
+		 build/script/script.o \
+		 build/script/gfx.o \
+		 build/script/input.o \
+		 build/script/timer.o \
+		 build/script/font.o \
+		 build/script/image.o
 	
 	g++ -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU
 
-%.o: %.c
-	gcc -Wno-unused -Wall -Wpedantic -Werror -I. -g -c -o $@ $<
+build/%.o: src/%.cpp
+	@mkdir --parents ${@D}
+	g++ -Wno-unused -Wall -Wpedantic -Werror -Isrc/ -g -c -o $@ $<
 
-%.o: %.cpp
-	g++ -Wno-unused -Wall -Wpedantic -Werror -I. -g -c -o $@ $<
+.PHONY: clean
+clean:
+	rm srf
+	rm -r build/
 
