@@ -7,7 +7,6 @@ srf: build/srf.o \
 		 build/gfx/Tilemap.o \
 		 build/gfx/gl/Texture.o \
 		 build/gfx/gl/Program.o \
-		 build/gfx/gl/Buffer.o \
 		 build/script/luaref.o \
 		 build/script/event.o \
 		 build/script/script.o \

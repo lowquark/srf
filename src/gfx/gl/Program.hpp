@@ -22,6 +22,7 @@ namespace gfx {
       VertexShader & operator=(const VertexShader & other) = delete;
 
       VertexShader(VertexShader && other);
+      VertexShader & operator=(VertexShader && other);
 
       bool compiled() { return _compiled; }
       bool compile(const std::string & src);
@@ -42,6 +43,7 @@ namespace gfx {
       FragmentShader & operator=(const FragmentShader & other) = delete;
 
       FragmentShader(FragmentShader && other);
+      FragmentShader & operator=(FragmentShader && other);
 
       bool compiled() { return _compiled; }
       bool compile(const std::string & src);
@@ -62,10 +64,8 @@ namespace gfx {
       Program(const Program & other) = delete;
       Program & operator=(const Program & other) = delete;
 
-      Program(Program && other) {
-        programId = other.programId;
-        other.programId = 0;
-      }
+      Program(Program && other);
+      Program & operator=(Program && other);
 
       void attach(const VertexShader & vert);
       void attach(const FragmentShader & vert);

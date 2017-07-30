@@ -24,6 +24,18 @@ namespace gfx {
       other.id = 0;
       other._compiled = false;
     }
+    VertexShader & VertexShader::operator=(VertexShader && other) {
+      if(this != &other) {
+        glDeleteShader(id);
+
+        id = other.id;
+        _compiled = other._compiled;
+        other.id = 0;
+        other._compiled = false;
+      }
+
+      return *this;
+    }
 
     bool VertexShader::compile(const std::string & src) {
       const char * src_list[1] = { src.c_str() };
@@ -71,6 +83,18 @@ namespace gfx {
       other.id = 0;
       other._compiled = false;
     }
+    FragmentShader & FragmentShader::operator=(FragmentShader && other) {
+      if(this != &other) {
+        glDeleteShader(id);
+
+        id = other.id;
+        _compiled = other._compiled;
+        other.id = 0;
+        other._compiled = false;
+      }
+
+      return *this;
+    }
 
     bool FragmentShader::compile(const std::string & src) {
       const char * src_list[1] = { src.c_str() };
@@ -105,6 +129,25 @@ namespace gfx {
     Program::~Program() {
       glDeleteProgram(programId);
       programId = 0;
+    }
+
+    Program::Program(Program && other) {
+      programId = other.programId;
+      _linked = other._linked;
+      other.programId = 0;
+      other._linked = false;
+    }
+    Program & Program::operator=(Program && other) {
+      if(this != &other) {
+        glDeleteProgram(programId);
+
+        programId = other.programId;
+        _linked = other._linked;
+        other.programId = 0;
+        other._linked = false;
+      }
+
+      return *this;
     }
 
     void Program::attach(const VertexShader & vert) {
