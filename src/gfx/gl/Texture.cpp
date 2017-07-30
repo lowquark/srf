@@ -5,11 +5,16 @@
 
 namespace gfx {
   namespace gl {
-    Texture::~Texture() {
-      if(_id) {
-        printf("Warning: Leaking texture %u\n", _id);
-      }
+    Texture::Texture() {
+      load();
     }
+    Texture::Texture(const Image & image) {
+      load(image);
+    }
+    Texture::~Texture() {
+      unload();
+    }
+
     void Texture::load() {
       if(_id == 0) {
         glGenTextures(1, &_id);
@@ -35,6 +40,8 @@ namespace gfx {
     }
     void Texture::unload() {
       glDeleteTextures(1, &_id);
+      _width = 0;
+      _height = 0;
       _id = 0;
     }
   }
