@@ -31,13 +31,11 @@ namespace gfx {
         other._id = 0;
       }
 
-      void load();
-      void load(const Image & image);
-      void unload();
-
       GLuint id() const { return _id; }
       unsigned int width() const { return _width; }
       unsigned int height() const { return _height; }
+
+      void load(const Image & image);
     };
   }
 }

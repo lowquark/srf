@@ -8,7 +8,7 @@
 #include <memory>
 
 namespace gfx {
-  class TileMap {
+  class Tilemap {
     public:
     const Vec2u & size() const { return _size; }
     void set_size(Vec2u size);
@@ -16,7 +16,7 @@ namespace gfx {
     Vec2u draw_size() const { return Vec2u(_size.x*_tile_size.x,
                                            _size.y*_tile_size.y); }
 
-    void set_tile_set(const gl::Texture & texture, Vec2u tile_set_size, Vec2u tile_size);
+    void set_tileset(const gl::Texture & texture, Vec2u tileset_size, Vec2u tile_size);
     void set_tile(Vec2i tile, unsigned int idx);
     void set_fg_color(Vec2i tile, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF);
     void set_bg_color(Vec2i tile, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF);
@@ -24,8 +24,8 @@ namespace gfx {
     private:
     Vec2u _size; // size in tiles
 
-    GLuint tile_set_texid = 0; // tileset texture
-    Vec2u _tile_set_size;      // tileset size in tiles
+    GLuint tileset_texid = 0; // tileset texture
+    Vec2u _tileset_size;      // tileset size in tiles
     Vec2u _tile_size;          // tileset tile size in pixels
 
     // interim index data
@@ -36,14 +36,20 @@ namespace gfx {
     std::unique_ptr<uint8_t[]> bg_color_data;
     std::unique_ptr<uint8_t[]> index_data;
 
-    friend class TileMapShader;
+    friend class TilemapShader;
   };
-  class TileMapShader {
+  class TilemapShader {
     public:
-    void draw(const TileMap & map, Vec2i pos);
+    TilemapShader() = default;
+    TilemapShader(const std::string & vert_src, const std::string & frag_src);
 
-    bool load(const std::string & vert_src, const std::string & frag_src);
-    void unload();
+    TilemapShader(const TilemapShader & other) = delete;
+    TilemapShader & operator=(const TilemapShader & other) = delete;
+
+    void draw(const Tilemap & map, Vec2i pos);
+
+    bool compile(const std::string & vert_src, const std::string & frag_src);
+    bool compiled() { return shader_program.linked(); };
 
     private:
     gl::Program shader_program;
@@ -51,13 +57,13 @@ namespace gfx {
     gl::Texture bg_color_tex;
     gl::Texture index_data_tex;
 
-    GLint tile_map_size_loc;
-    GLint tile_set_size_loc;
+    GLint tilemap_size_loc = 0;
+    GLint tileset_size_loc = 0;
 
-    GLint tile_set_loc;
-    GLint fg_color_loc;
-    GLint bg_color_loc;
-    GLint index_data_loc;
+    GLint tileset_loc = 0;
+    GLint fg_color_loc = 0;
+    GLint bg_color_loc = 0;
+    GLint index_data_loc = 0;
   };
 }
 
