@@ -9,10 +9,10 @@
 namespace script {
   namespace timer {
     class Timer;
-    struct TimerFireEvent : public script::Event {
+    struct FireTimer : public script::Action {
       Timer * timer;
-      TimerFireEvent(Timer * timer) : timer(timer) {}
-      void emit() override;
+      FireTimer(Timer * timer) : timer(timer) {}
+      void operator()() override;
     };
 
     class Timer {
@@ -63,12 +63,12 @@ namespace script {
 
       // ISR, should not access member fields
       static Uint32 loop_callback(Uint32 interval, void * param) {
-        emit<TimerFireEvent>((Timer *)param);
+        emit<FireTimer>((Timer *)param);
         return interval; // call again
       }
       // ISR, should not access member fields
       static Uint32 oneshot_callback(Uint32 interval, void * param) {
-        emit<TimerFireEvent>((Timer *)param);
+        emit<FireTimer>((Timer *)param);
         return 0; // do not call again
       }
     };
@@ -85,7 +85,7 @@ namespace script {
       std::shared_ptr<Timer> timer;
     };
 
-    void TimerFireEvent::emit() {
+    void FireTimer::operator()() {
       timer->fire();
     }
 

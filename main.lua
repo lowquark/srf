@@ -65,6 +65,8 @@ gfx.create_window(16*16, 16*16, false, function (status)
   draw()
 end)
 
+gfx.on('exposed', draw)
+
 input.on('quit', function ()
   print('input.on(\'quit\')!')
 end)

@@ -4,6 +4,8 @@
 
 #include <cassert>
 #include <queue>
+#include <mutex>
+#include <condition_variable>
 
 #include <SDL2/SDL.h>
 #include <lua5.1/lua.hpp>
@@ -12,10 +14,12 @@ namespace script {
   namespace input {
     int luaopen(lua_State * L);
     void clear_lua_refs();
+    bool handle_sdl_event(const SDL_Event * event);
   }
   namespace gfx {
     int luaopen(lua_State * L);
     void clear_lua_refs();
+    bool handle_sdl_event(const SDL_Event * event);
   }
   namespace timer {
     int luaopen(lua_State * L);
@@ -30,22 +34,22 @@ namespace script {
     void clear_lua_refs();
   }
 
-  // event queue and safety mechanism
-  static std::queue<Event *> events;
-  static SDL_mutex * event_queue_lock = NULL;
-  static SDL_cond * event_queue_signal = NULL;
+  // action queue and safety mechanism
+  static std::queue<Action *> actions;
+  std::mutex actions_lock;
+  std::condition_variable actions_cv;
 
-  // thread safe event enqueuing
-  void emit(Event * event) {
-    SDL_LockMutex(event_queue_lock);
-    events.push(event);
-    SDL_CondSignal(event_queue_signal);
-    SDL_UnlockMutex(event_queue_lock);
+  // thread safe action enqueuing
+  void emit(Action * action) {
+    std::unique_lock<std::mutex> lk(actions_lock);
+    actions.push(action);
+    lk.unlock();
+    actions_cv.notify_one();
   }
 
   static bool task_run = false;
-  struct StopEvent : public Event {
-    void emit() override { task_run = false; }
+  struct StopAction : public Action {
+    void operator()() override { task_run = false; }
   };
 
   static luaL_Reg module_loaders[] = {
@@ -77,16 +81,16 @@ namespace script {
 
     task_run = true;
     while(task_run) {
-      SDL_LockMutex(event_queue_lock);
-      while(events.size() == 0) {
-        SDL_CondWait(event_queue_signal, event_queue_lock);
+      std::unique_lock<std::mutex> lk(actions_lock);
+      while(actions.empty()) {
+        actions_cv.wait(lk);
       }
-      SDL_UnlockMutex(event_queue_lock);
+      lk.unlock();
 
-      Event * event = events.front();
-      events.pop();
-      event->emit();
-      delete event;
+      Action * action = actions.front();
+      actions.pop();
+      (*action)();
+      delete action;
     }
 
     printf("script: stopping\n");
@@ -108,26 +112,24 @@ namespace script {
   void init() {
     assert(thread == NULL);
 
-    event_queue_lock = SDL_CreateMutex();
-    event_queue_signal = SDL_CreateCond();
-
     thread = SDL_CreateThread(task_fn, "script", (void *)"main.lua");
   }
   void deinit() {
-    emit(new StopEvent);
+    emit(new StopAction);
 
     SDL_WaitThread(thread, NULL);
     thread = NULL;
 
-    SDL_DestroyCond(event_queue_signal);
-    event_queue_signal = NULL;
-    SDL_DestroyMutex(event_queue_lock);
-    event_queue_lock = NULL;
-
-    while(events.size()) {
-      delete events.front();
-      events.pop();
+    while(actions.size()) {
+      delete actions.front();
+      actions.pop();
     }
+  }
+
+  bool handle_sdl_event(const SDL_Event * event) {
+    if(input::handle_sdl_event(event)) { return true; }
+    else if(gfx::handle_sdl_event(event)) { return true; }
+    else { return false; }
   }
 }
 

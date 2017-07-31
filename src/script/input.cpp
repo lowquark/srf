@@ -176,64 +176,64 @@ namespace script {
       keydown_event.clear();
       keyup_event.clear();
     }
-  }
 
-  struct QuitEvent : public script::Event {
-    void emit() override {
-      input::quit_event.emit();
-    }
-  };
-  struct KeyDownEvent : public script::Event {
-    unsigned int key;
-    KeyDownEvent(unsigned int key) : key(key) {}
-
-    struct LuaPusher : public script::LuaPusher {
+    struct EmitQuit : public script::Action {
+      void operator()() override {
+        input::quit_event.emit();
+      }
+    };
+    struct EmitKeyDown : public script::Action {
       unsigned int key;
+      EmitKeyDown(unsigned int key) : key(key) {}
 
-      LuaPusher(unsigned int key) : key(key) {}
-      int push(lua_State * L) const override {
-        lua_pushinteger(L, key);
-        return 1;
+      struct LuaPusher : public script::LuaPusher {
+        unsigned int key;
+
+        LuaPusher(unsigned int key) : key(key) {}
+        int push(lua_State * L) const override {
+          lua_pushinteger(L, key);
+          return 1;
+        }
+      };
+
+      void operator()() override {
+        input::keydown_event.emit(LuaPusher(key));
+      }
+    };
+    struct EmitKeyUp : public script::Action {
+      unsigned int key;
+      EmitKeyUp(unsigned int key) : key(key) {}
+
+      struct LuaPusher : public script::LuaPusher {
+        unsigned int key;
+
+        LuaPusher(unsigned int key) : key(key) {}
+        int push(lua_State * L) const override {
+          lua_pushinteger(L, key);
+          return 1;
+        }
+      };
+
+      void operator()() override {
+        input::keyup_event.emit(LuaPusher(key));
       }
     };
 
-    void emit() override {
-      input::keydown_event.emit(LuaPusher(key));
-    }
-  };
-  struct KeyUpEvent : public script::Event {
-    unsigned int key;
-    KeyUpEvent(unsigned int key) : key(key) {}
-
-    struct LuaPusher : public script::LuaPusher {
-      unsigned int key;
-
-      LuaPusher(unsigned int key) : key(key) {}
-      int push(lua_State * L) const override {
-        lua_pushinteger(L, key);
-        return 1;
+    // these come in from a different thread
+    bool handle_sdl_event(const SDL_Event * event) {
+      if(event->type == SDL_QUIT) {
+        emit<EmitQuit>();
+        return true;
+      } else if(event->type == SDL_KEYDOWN) {
+        emit<EmitKeyDown>(event->key.keysym.scancode);
+        return true;
+      } else if(event->type == SDL_KEYUP) {
+        emit<EmitKeyUp>(event->key.keysym.scancode);
+        return true;
       }
-    };
 
-    void emit() override {
-      input::keyup_event.emit(LuaPusher(key));
+      return false;
     }
-  };
-
-  // these come in from a different thread
-  int handle_sdl_event(const SDL_Event * event) {
-    if(event->type == SDL_QUIT) {
-      emit<QuitEvent>();
-      return 1;
-    } else if(event->type == SDL_KEYDOWN) {
-      emit<KeyDownEvent>(event->key.keysym.scancode);
-      return 1;
-    } else if(event->type == SDL_KEYUP) {
-      emit<KeyUpEvent>(event->key.keysym.scancode);
-      return 1;
-    }
-
-    return 0;
   }
 }
 

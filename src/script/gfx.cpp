@@ -1,18 +1,23 @@
 
+#include <gfx/gfx.hpp>
+
 #include <script/script_private.hpp>
 #include <script/luaref.hpp>
-#include <gfx/gfx.hpp>
+#include <script/event.hpp>
+
 #include <memory>
 
 namespace script {
   namespace gfx {
-    struct CreateWindowEvent : public script::Event {
+    static script::LuaEventEmitter exposed_event;
+
+    struct CallCreateWindowCallback : public script::Action {
       public:
-      CreateWindowEvent(bool success, LuaRef && function)
+      CallCreateWindowCallback(bool success, LuaRef && function)
         : success(success)
         , lua_function(function) {}
 
-      void emit() override {
+      void operator()() override {
         lua_State * L = lua_function.push();
         if(L) {
           lua_pushboolean(L, success);
@@ -31,18 +36,18 @@ namespace script {
 
       // gfx module callback
       virtual void operator()(bool success) {
-        script::emit<CreateWindowEvent>(success, std::move(lua_function));
+        script::emit<CallCreateWindowCallback>(success, std::move(lua_function));
       }
 
       private:
       LuaRef lua_function;
     };
 
-    struct FlushEvent : public script::Event {
-      FlushEvent(LuaRef && function)
+    struct CallFlushCallback : public script::Action {
+      CallFlushCallback(LuaRef && function)
         : lua_function(function) {}
 
-      void emit() override {
+      void operator()() override {
         lua_State * L = lua_function.push();
         if(L) {
           lua_call(L, 0, 0);
@@ -59,11 +64,17 @@ namespace script {
 
       // gfx module callback
       void operator()() override {
-        script::emit<FlushEvent>(std::move(lua_function));
+        script::emit<CallFlushCallback>(std::move(lua_function));
       }
 
       private:
       LuaRef lua_function;
+    };
+
+    struct EmitExposed : public script::Action {
+      void operator()() override {
+        exposed_event.emit();
+      }
     };
 
     // gfx.create_window
@@ -102,6 +113,19 @@ namespace script {
 
     // gfx.clear
     static int clear(lua_State * L) {
+      return 0;
+    }
+
+    // gfx.on
+    static int on(lua_State * L) {
+      const char * events[] = { "exposed", NULL };
+
+      int index = luaL_checkoption(L, 1, NULL, events);
+
+      if(index == 0) {
+        exposed_event.add_listener(L, 2);
+      }
+
       return 0;
     }
 
@@ -247,6 +271,7 @@ namespace script {
       { "create_window", create_window },
       {         "flush", flush         },
       {         "clear", clear         },
+      {            "on", on            },
       {          "clip", clip          },
       {        "unclip", unclip        },
       {       "Tilemap", Tilemap       },
@@ -282,6 +307,19 @@ namespace script {
       return 1;
     }
     void clear_lua_refs() {
+      exposed_event.clear();
+    }
+
+    bool handle_sdl_event(const SDL_Event * event) {
+      if(event->type == SDL_WINDOWEVENT) {
+        // assumes single window
+        if(event->window.event == SDL_WINDOWEVENT_EXPOSED) {
+          emit<EmitExposed>();
+          return true;
+        }
+      }
+
+      return false;
     }
   }
 }

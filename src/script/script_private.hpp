@@ -4,15 +4,15 @@
 #include <utility>
 
 namespace script {
-  struct Event {
+  struct Action {
     public:
-    virtual ~Event() = default;
-    virtual void emit() {};
+    virtual ~Action() = default;
+    virtual void operator()() {};
   };
 
   template <typename T, typename ... Args>
   void emit(Args ... args) {
-    extern void emit(Event * event);
+    extern void emit(Action * event);
     emit(new T(std::forward<Args>(args)...));
   }
 }

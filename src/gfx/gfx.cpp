@@ -16,7 +16,7 @@ namespace gfx {
   static SDL_Window * window = NULL;
   static SDL_GLContext gl_ctx = NULL;
 
-  static Uint32 gfx_event = (Uint32)-1;
+  static Uint32 gfx_action_event = (Uint32)-1;
 
   uptr<TilemapShader> tilemap_shader;
   sptr<gl::Texture> tileset;
@@ -91,9 +91,9 @@ namespace gfx {
   }
 
   void init() {
-    if(gfx_event == (Uint32)-1) {
-      gfx_event = SDL_RegisterEvents(1);
-      assert(gfx_event != (Uint32)-1);
+    if(gfx_action_event == (Uint32)-1) {
+      gfx_action_event = SDL_RegisterEvents(1);
+      assert(gfx_action_event != (Uint32)-1);
     }
   }
 
@@ -205,32 +205,34 @@ namespace gfx {
     Tilemap tilemap;
   };
 
-  static void emit_sdl_event(Action * data1) {
+  template <typename T, typename ... Args>
+  static typename std::enable_if<std::is_base_of<Action, T>::value, void>::type
+  enqueue_action(Args ... args) {
     SDL_Event event;
     SDL_zero(event);
-    event.type = gfx_event;
+    event.type = gfx_action_event;
     event.user.code = 0;
-    event.user.data1 = (void *)data1;
+    event.user.data1 = (void *)new T(std::forward<Args>(args)...);
     event.user.data2 = NULL;
-    SDL_PushEvent(&event);
+    SDL_PushEvent(&event); // alledgedly thread-safe
   }
 
   void create_window(int w, int h, bool fs, uptr<CreateWindowCallback> && callback) {
-    emit_sdl_event(new CreateWindowAction(w, h, fs, std::forward<decltype(callback)>(callback)));
+    enqueue_action<CreateWindowAction>(w, h, fs, std::forward<decltype(callback)>(callback));
   }
   void flush(uptr<FlushCallback> && callback) {
-    emit_sdl_event(new FlushAction(std::forward<decltype(callback)>(callback)));
+    enqueue_action<FlushAction>(std::forward<decltype(callback)>(callback));
   }
 
   void draw_tilemap(const Tilemap & tilemap) {
-    emit_sdl_event(new DrawTilemapAction(tilemap));
+    enqueue_action<DrawTilemapAction>(tilemap);
   }
   void draw_tilemap(Tilemap && tilemap) {
-    emit_sdl_event(new DrawTilemapAction(std::forward<decltype(tilemap)>(tilemap)));
+    enqueue_action<DrawTilemapAction>(std::forward<decltype(tilemap)>(tilemap));
   }
 
   bool handle_sdl_event(const SDL_Event * event) {
-    if(event->type == gfx_event) {
+    if(event->type == gfx_action_event) {
       Action * action = (Action *)event->user.data1;
 
       (*action)();
@@ -238,9 +240,9 @@ namespace gfx {
       delete action;
 
       return true;
-    } else {
-      return false;
     }
+
+    return false;
   }
 }
 
