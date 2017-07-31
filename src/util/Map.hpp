@@ -3,6 +3,7 @@
 
 #include "Vec2.hpp"
 #include <vector>
+#include <cstdio>
 
 template <typename T>
 class Map {
@@ -26,27 +27,17 @@ class Map {
 
   bool valid(Vec2i pos) const {
     if(pos.x < 0) { return false; }
-    if(pos.x >= _size.x) { return false; }
+    if((unsigned int)pos.x >= _size.x) { return false; }
     if(pos.y < 0) { return false; }
-    if(pos.y >= _size.y) { return false; }
+    if((unsigned int)pos.y >= _size.y) { return false; }
 
     return true;
   }
   unsigned int index(Vec2i pos) const {
     return pos.x + pos.y*_size.x;
   }
-
-  const T * get_ptr(Vec2i pos) const {
-    if(valid(pos)) {
-      return &_data[index(pos)];
-    }
-    return nullptr;
-  }
-  T * get_ptr(Vec2i pos) {
-    if(valid(pos)) {
-      return &_data[index(pos)];
-    }
-    return nullptr;
+  Vec2i coord(unsigned int index) {
+    return Vec2i(index % _size.x, index / _size.x);
   }
 
   const T & get(Vec2i pos, const T & _default = T()) const {

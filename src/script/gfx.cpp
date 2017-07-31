@@ -114,8 +114,128 @@ namespace script {
       return 0;
     }
 
-    // gfx.draw_tile_map
-    static int draw_tile_map(lua_State * L) {
+    struct LuaTilemap {
+      std::string tileset;
+      Vec2u size;
+
+      ::gfx::Tilemap::Tile * tiles() {
+        return (::gfx::Tilemap::Tile *)(this + 1);
+      }
+    };
+
+    static int Tilemap(lua_State * L) {
+      int size_x = luaL_checkint(L, 1);
+      int size_y = luaL_checkint(L, 2);
+
+      if(size_x < 0) { size_x = 0; }
+      if(size_y < 0) { size_y = 0; }
+
+      unsigned int n_tiles = size_x * size_y;
+
+      LuaTilemap * tm = (LuaTilemap *)lua_newuserdata(L, sizeof(LuaTilemap) + sizeof(::gfx::Tilemap::Tile)*n_tiles);
+        luaL_getmetatable(L, "tilemap");
+          lua_setmetatable(L, -2);
+
+      auto tiles = tm->tiles();
+
+      new (tm) LuaTilemap;
+      for(unsigned int i = 0 ; i < n_tiles ; i ++) {
+        new (tm->tiles() + i) ::gfx::Tilemap::Tile;
+      }
+
+      tm->size = Vec2u(size_x, size_y);
+
+      printf("tm->size: %u, %u\n", tm->size.x, tm->size.y);
+
+      return 1;
+    }
+    static int Tilemap_set_tileset(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+      size_t strlen = 0;
+      const char * str = luaL_checklstring(L, 2, &strlen);
+
+      tm->tileset = std::string(str, strlen);
+
+      return 0;
+    }
+    static int Tilemap_set_index(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+      int x = luaL_checkint(L, 2);
+      int y = luaL_checkint(L, 3);
+      int idx = luaL_checkint(L, 4);
+
+      if(x >= 0 && (unsigned int)x < tm->size.x &&
+         y >= 0 && (unsigned int)y < tm->size.y) {
+        unsigned int i = x + y * tm->size.x;
+        tm->tiles()[i].tileset_index = idx;
+      }
+
+      return 0;
+    }
+    static int Tilemap_set_foreground(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+      int x = luaL_checkint(L, 2);
+      int y = luaL_checkint(L, 3);
+      int r = luaL_checkint(L, 4);
+      int g = luaL_checkint(L, 5);
+      int b = luaL_checkint(L, 6);
+      int a = luaL_optint(L, 7, 0xFF);
+
+      if(x >= 0 && (unsigned int)x < tm->size.x &&
+         y >= 0 && (unsigned int)y < tm->size.y) {
+        unsigned int i = x + y * tm->size.x;
+        tm->tiles()[i].foreground_color = ::gfx::Tilemap::Color(r, g, b, a);
+      }
+
+      return 0;
+    }
+    static int Tilemap_set_background(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+      int x = luaL_checkint(L, 2);
+      int y = luaL_checkint(L, 3);
+      int r = luaL_checkint(L, 4);
+      int g = luaL_checkint(L, 5);
+      int b = luaL_checkint(L, 6);
+      int a = luaL_optint(L, 7, 0xFF);
+
+      if(x >= 0 && (unsigned int)x < tm->size.x &&
+         y >= 0 && (unsigned int)y < tm->size.y) {
+        unsigned int i = x + y * tm->size.x;
+        tm->tiles()[i].background_color = ::gfx::Tilemap::Color(r, g, b, a);
+      }
+
+      return 0;
+    }
+    static int Tilemap_gc(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+      unsigned int n_tiles = tm->size.x * tm->size.y;
+
+      for(unsigned int i = 0 ; i < n_tiles ; i ++) {
+        tm->tiles()[i].~Tile();
+      }
+      tm->~LuaTilemap();
+
+      return 0;
+    }
+
+    // gfx.draw_tilemap
+    static int draw_tilemap(lua_State * L) {
+      LuaTilemap * tm = (LuaTilemap *)luaL_checkudata(L, 1, "tilemap");
+
+      ::gfx::Tilemap tilemap;
+      tilemap.tileset_uri = tm->tileset;
+      tilemap.tiles.resize(tm->size);
+
+      unsigned int i = 0;
+      for(unsigned int y = 0 ; y < tm->size.y ; y ++) {
+        for(unsigned int x = 0 ; x < tm->size.x ; x ++) {
+          tilemap.tiles.set(Vec2i(x, y), tm->tiles()[i]);
+          i ++;
+        }
+      }
+
+      ::gfx::draw_tilemap(std::move(tilemap));
+
       return 0;
     }
     // gfx.draw_label
@@ -124,19 +244,41 @@ namespace script {
     }
 
     static luaL_Reg functions[] = {
-      {  "create_window", create_window  },
-      {          "flush", flush          },
-      {          "clear", clear          },
-      {           "clip", clip           },
-      {         "unclip", unclip         },
-      {  "draw_tile_map", draw_tile_map  },
-      {     "draw_label", draw_label     },
+      { "create_window", create_window },
+      {         "flush", flush         },
+      {         "clear", clear         },
+      {          "clip", clip          },
+      {        "unclip", unclip        },
+      {       "Tilemap", Tilemap       },
+      {  "draw_tilemap", draw_tilemap  },
+      {    "draw_label", draw_label    },
       { NULL, NULL },
     };
 
     int luaopen(lua_State * L) {
       lua_newtable(L);
       luaL_register(L, NULL, functions);
+
+      if(luaL_newmetatable(L, "tilemap")) {
+        lua_newtable(L);
+          lua_pushcfunction(L, Tilemap_set_tileset);
+            lua_setfield(L, -2, "set_tileset");
+          lua_pushcfunction(L, Tilemap_set_index);
+            lua_setfield(L, -2, "set_index");
+          lua_pushcfunction(L, Tilemap_set_foreground);
+            lua_setfield(L, -2, "set_foreground");
+          lua_pushcfunction(L, Tilemap_set_background);
+            lua_setfield(L, -2, "set_background");
+          lua_setfield(L, -2, "__index");
+
+        lua_pushcfunction(L, Tilemap_gc);
+          lua_setfield(L, -2, "__gc");
+
+        lua_pop(L, 1);
+      } else {
+        lua_pop(L, 1);
+      }
+
       return 1;
     }
     void clear_lua_refs() {

@@ -60,46 +60,47 @@ namespace script {
         case SDL_SCANCODE_Y: return "y";
         case SDL_SCANCODE_Z: return "z";
 
-        case SDL_SCANCODE_KP_0:
-          return "numpad_0";
         case SDL_SCANCODE_0:
           return "0";
-        case SDL_SCANCODE_KP_1:
-          return "numpad_1";
         case SDL_SCANCODE_1:
           return "1";
-        case SDL_SCANCODE_KP_2:
-          return "numpad_2";
         case SDL_SCANCODE_2:
           return "2";
-        case SDL_SCANCODE_KP_3:
-          return "numpad_3";
         case SDL_SCANCODE_3:
           return "3";
-        case SDL_SCANCODE_KP_4:
-          return "numpad_4";
         case SDL_SCANCODE_4:
           return "4";
-        case SDL_SCANCODE_KP_5:
-          return "numpad_5";
         case SDL_SCANCODE_5:
           return "5";
-        case SDL_SCANCODE_KP_6:
-          return "numpad_6";
         case SDL_SCANCODE_6:
           return "6";
-        case SDL_SCANCODE_KP_7:
-          return "numpad_7";
         case SDL_SCANCODE_7:
           return "7";
-        case SDL_SCANCODE_KP_8:
-          return "numpad_8";
         case SDL_SCANCODE_8:
           return "8";
-        case SDL_SCANCODE_KP_9:
-          return "numpad_9";
         case SDL_SCANCODE_9:
           return "9";
+
+        case SDL_SCANCODE_KP_0:
+          return "numpad_0";
+        case SDL_SCANCODE_KP_1:
+          return "numpad_1";
+        case SDL_SCANCODE_KP_2:
+          return "numpad_2";
+        case SDL_SCANCODE_KP_3:
+          return "numpad_3";
+        case SDL_SCANCODE_KP_4:
+          return "numpad_4";
+        case SDL_SCANCODE_KP_5:
+          return "numpad_5";
+        case SDL_SCANCODE_KP_6:
+          return "numpad_6";
+        case SDL_SCANCODE_KP_7:
+          return "numpad_7";
+        case SDL_SCANCODE_KP_8:
+          return "numpad_8";
+        case SDL_SCANCODE_KP_9:
+          return "numpad_9";
 
         default: return NULL;
       }
@@ -153,6 +154,17 @@ namespace script {
           LOAD_KEY(SDL_SCANCODE_7)
           LOAD_KEY(SDL_SCANCODE_8)
           LOAD_KEY(SDL_SCANCODE_9)
+
+          LOAD_KEY(SDL_SCANCODE_KP_0)
+          LOAD_KEY(SDL_SCANCODE_KP_1)
+          LOAD_KEY(SDL_SCANCODE_KP_2)
+          LOAD_KEY(SDL_SCANCODE_KP_3)
+          LOAD_KEY(SDL_SCANCODE_KP_4)
+          LOAD_KEY(SDL_SCANCODE_KP_5)
+          LOAD_KEY(SDL_SCANCODE_KP_6)
+          LOAD_KEY(SDL_SCANCODE_KP_7)
+          LOAD_KEY(SDL_SCANCODE_KP_8)
+          LOAD_KEY(SDL_SCANCODE_KP_9)
 
           lua_setfield(L, -2, "scancode");
 

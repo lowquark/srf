@@ -11,7 +11,6 @@
 #include <util/Image.hpp>
 #include <util/load_png.hpp>
 #include <gfx/draw.hpp>
-#include <gfx/Tilemap.hpp>
 
 namespace gfx {
   static SDL_Window * window = NULL;
@@ -19,10 +18,20 @@ namespace gfx {
 
   static Uint32 gfx_event = (Uint32)-1;
 
-  std::unique_ptr<TilemapShader> tilemap_shader;
-  std::unique_ptr<gl::Texture> tileset;
+  uptr<TilemapShader> tilemap_shader;
+  sptr<gl::Texture> tileset;
 
-  Tilemap tilemap;
+
+  sptr<gl::Texture> get_texture(const std::string & uri) {
+    return tileset;
+  }
+  Vec2u get_tileset_size(const std::string & uri) {
+    return Vec2u(16, 16);
+  }
+  Vec2u get_tileset_tile_size(const std::string & uri) {
+    return Vec2u(16, 16);
+  }
+
 
   static void init_gl(Vec2u window_size) {
     glewInit();
@@ -33,42 +42,43 @@ namespace gfx {
 
     draw::set_window_size(window_size);
 
-    tilemap_shader.reset(new TilemapShader(
-        "#version 130\n\n"
-        "in vec2 vertex_pos;\n"
-        "in vec2 vertex_texcoord;\n"
-        "varying vec2 texcoord;\n"
-        "void main() {\n"
-        "gl_Position.xy = vertex_pos;\n"
-        "gl_Position.z = 0.0;\n"
-        "gl_Position.w = 1.0;\n"
-        "texcoord = vertex_texcoord;\n"
-        "}",
-        "#version 130\n\n"
-        "uniform sampler2D tileset;\n"
-        "uniform sampler2D fg_color;\n"
-        "uniform sampler2D bg_color;\n"
-        "uniform sampler2D index_data;\n"
-        "uniform ivec2 tilemap_size;\n"
-        "uniform ivec2 tileset_size;\n"
-        "\n"
-        "varying vec2 texcoord;\n"
-        "void main() { \n"
-        "vec4 fg = texture(fg_color, texcoord);\n"
-        "vec4 bg = texture(bg_color, texcoord);\n"
-        "vec2 tileset_coord = texture(index_data, texcoord).xy * 255/256;\n"
-        "\n"
-        "vec2 tile_local_texcoord = texcoord*tilemap_size - floor(texcoord*tilemap_size);\n"
-        "vec2 tileset_texcoord = tileset_coord + tile_local_texcoord/tileset_size;\n"
-        "vec4 tile_color = texture(tileset, tileset_texcoord);\n"
-        "\n"
-        "if(abs(tile_color.r - tile_color.g) < 0.001 && \n"
-        "   abs(tile_color.g - tile_color.b) < 0.001) {\n"
-        "gl_FragColor = bg + tile_color.r*(fg - bg);\n"
-        "} else {\n"
-        "gl_FragColor = tile_color;\n"
-        "}\n"
-        "}\n")); // lol
+    tilemap_shader.reset(
+        new TilemapShader(
+          "#version 130\n\n"
+          "in vec2 vertex_pos;\n"
+          "in vec2 vertex_texcoord;\n"
+          "varying vec2 texcoord;\n"
+          "void main() {\n"
+          "gl_Position.xy = vertex_pos;\n"
+          "gl_Position.z = 0.0;\n"
+          "gl_Position.w = 1.0;\n"
+          "texcoord = vertex_texcoord;\n"
+          "}",
+          "#version 130\n\n"
+          "uniform sampler2D tileset;\n"
+          "uniform sampler2D fg_color;\n"
+          "uniform sampler2D bg_color;\n"
+          "uniform sampler2D index_data;\n"
+          "uniform ivec2 tilemap_size;\n"
+          "uniform ivec2 tileset_size;\n"
+          "\n"
+          "varying vec2 texcoord;\n"
+          "void main() { \n"
+          "vec4 fg = texture(fg_color, texcoord);\n"
+          "vec4 bg = texture(bg_color, texcoord);\n"
+          "vec2 tileset_coord = texture(index_data, texcoord).xy * 255/256;\n"
+          "\n"
+          "vec2 tile_local_texcoord = texcoord*tilemap_size - floor(texcoord*tilemap_size);\n"
+          "vec2 tileset_texcoord = tileset_coord + tile_local_texcoord/tileset_size;\n"
+          "vec4 tile_color = texture(tileset, tileset_texcoord);\n"
+          "\n"
+          "if(abs(tile_color.r - tile_color.g) < 0.001 && \n"
+          "   abs(tile_color.g - tile_color.b) < 0.001) {\n"
+          "gl_FragColor = bg + tile_color.r*(fg - bg);\n"
+          "} else {\n"
+          "gl_FragColor = tile_color;\n"
+          "}\n"
+          "}\n")); // lol
 
     Image tileset_image;
     load_png(tileset_image, "tiles.png");
@@ -91,6 +101,7 @@ namespace gfx {
     if(window) {
       if(gl_ctx) {
         deinit_gl();
+
         SDL_GL_DeleteContext(gl_ctx);
         gl_ctx = NULL;
       }
@@ -145,7 +156,7 @@ namespace gfx {
       , height(height)
       , fullscreen(fullscreen)
       , callback(nullptr) {}
-    CreateWindowAction(int width, int height, bool fullscreen, std::unique_ptr<CreateWindowCallback> && callback)
+    CreateWindowAction(int width, int height, bool fullscreen, uptr<CreateWindowCallback> && callback)
       : width(width)
       , height(height)
       , fullscreen(fullscreen)
@@ -162,12 +173,12 @@ namespace gfx {
     int height;
     bool fullscreen;
 
-    std::unique_ptr<CreateWindowCallback> callback;
+    uptr<CreateWindowCallback> callback;
   };
   class FlushAction : public Action {
     public:
     FlushAction() = default;
-    FlushAction(std::unique_ptr<FlushCallback> && callback)
+    FlushAction(uptr<FlushCallback> && callback)
       : callback(std::forward<decltype(callback)>(callback)) {}
 
     void operator()() override {
@@ -179,53 +190,19 @@ namespace gfx {
     }
 
     private:
-    std::unique_ptr<FlushCallback> callback;
+    uptr<FlushCallback> callback;
   };
-
-  class LoadTextureAction : public Action {
+  class DrawTilemapAction : public Action {
     public:
-
-    LoadTextureAction(const Image & image, LoadTextureCallback * callback)
-      : image(image)
-      , callback(callback) {}
+    DrawTilemapAction(const Tilemap & tilemap) : tilemap(tilemap) {}
+    DrawTilemapAction(Tilemap && tilemap) : tilemap(std::forward<decltype(tilemap)>(tilemap)) {}
 
     void operator()() override {
-      if(gl_ctx) {
-        GLuint tex_id = 0;
-        glGenTextures(1, &tex_id);
-        glBindTexture(GL_TEXTURE_2D, tex_id);
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_RGBA,
-                     image.width(),
-                     image.height(),
-                     0,
-                     GL_RGBA,
-                     GL_UNSIGNED_BYTE,
-                     image.pixels());
-
-        (*callback)(tex_id);
-      }
+      tilemap_shader->draw(tilemap, Vec2i(0, 0));
     }
 
     private:
-    Image image;
-    LoadTextureCallback * callback;
-  };
-  class UnloadTextureAction : public Action {
-    public:
-    UnloadTextureAction(unsigned int tex_id)
-      : tex_id(tex_id) {}
-
-    void operator()() override {
-      if(gl_ctx) {
-        glDeleteTextures(1, &tex_id);
-        printf("gfx: unloaded texture %u\n", tex_id);
-      }
-    }
-
-    private:
-    unsigned int tex_id;
+    Tilemap tilemap;
   };
 
   static void emit_sdl_event(Action * data1) {
@@ -238,11 +215,18 @@ namespace gfx {
     SDL_PushEvent(&event);
   }
 
-  void create_window(int w, int h, bool fs, std::unique_ptr<CreateWindowCallback> && callback) {
+  void create_window(int w, int h, bool fs, uptr<CreateWindowCallback> && callback) {
     emit_sdl_event(new CreateWindowAction(w, h, fs, std::forward<decltype(callback)>(callback)));
   }
-  void flush(std::unique_ptr<FlushCallback> && callback) {
+  void flush(uptr<FlushCallback> && callback) {
     emit_sdl_event(new FlushAction(std::forward<decltype(callback)>(callback)));
+  }
+
+  void draw_tilemap(const Tilemap & tilemap) {
+    emit_sdl_event(new DrawTilemapAction(tilemap));
+  }
+  void draw_tilemap(Tilemap && tilemap) {
+    emit_sdl_event(new DrawTilemapAction(std::forward<decltype(tilemap)>(tilemap)));
   }
 
   bool handle_sdl_event(const SDL_Event * event) {
