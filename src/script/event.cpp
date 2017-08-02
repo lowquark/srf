@@ -12,6 +12,16 @@ namespace script {
   void LuaEventEmitter::add_listener(lua_State * L, int idx) {
     listeners.push_back(LuaRef(L, idx));
   }
+  void LuaEventEmitter::remove_listener(lua_State * L, int idx) {
+    for(auto it = listeners.begin() ;
+        it != listeners.end() ; ) {
+      if(it->equal(L, idx)) {
+        it = listeners.erase(it);
+      } else {
+        it ++;
+      }
+    }
+  }
   void LuaEventEmitter::emit() {
     for(auto & ref : listeners) {
       lua_State * L = ref.push();

@@ -13,6 +13,7 @@ namespace script {
     public:
     void clear();
     void add_listener(lua_State * L, int idx);
+    void remove_listener(lua_State * L, int idx);
     void emit();
     void emit(const LuaPusher & pusher);
 

@@ -128,6 +128,18 @@ namespace script {
 
       return 0;
     }
+    // gfx.off
+    static int off(lua_State * L) {
+      const char * events[] = { "exposed", NULL };
+
+      int index = luaL_checkoption(L, 1, NULL, events);
+
+      if(index == 0) {
+        exposed_event.remove_listener(L, 2);
+      }
+
+      return 0;
+    }
 
     // gfx.clip
     static int clip(lua_State * L) {
@@ -272,6 +284,7 @@ namespace script {
       {         "flush", flush         },
       {         "clear", clear         },
       {            "on", on            },
+      {           "off", off           },
       {          "clip", clip          },
       {        "unclip", unclip        },
       {       "Tilemap", Tilemap       },

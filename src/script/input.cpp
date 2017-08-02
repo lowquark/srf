@@ -27,6 +27,23 @@ namespace script {
 
       return 0;
     }
+    static int off(lua_State * L) {
+      const char * events[] = {
+        "quit", "keydown", "keyup", NULL
+      };
+
+      int index = luaL_checkoption(L, 1, NULL, events);
+
+      if(index == 0) {
+        quit_event.remove_listener(L, 2);
+      } else if(index == 1) {
+        keydown_event.remove_listener(L, 2);
+      } else if(index == 2) {
+        keyup_event.remove_listener(L, 2);
+      }
+
+      return 0;
+    }
 
     static const char * get_key_name(SDL_Scancode code) {
       switch(code) {
@@ -102,6 +119,15 @@ namespace script {
         case SDL_SCANCODE_KP_9:
           return "numpad_9";
 
+        case SDL_SCANCODE_UP:
+          return "up";
+        case SDL_SCANCODE_LEFT:
+          return "left";
+        case SDL_SCANCODE_DOWN:
+          return "down";
+        case SDL_SCANCODE_RIGHT:
+          return "right";
+
         default: return NULL;
       }
     }
@@ -113,6 +139,8 @@ namespace script {
 
         lua_pushcfunction(L, on);
           lua_setfield(L, -2, "on");
+        lua_pushcfunction(L, off);
+          lua_setfield(L, -2, "off");
 
         lua_newtable(L);
           LOAD_KEY(SDL_SCANCODE_ESCAPE)
@@ -165,6 +193,11 @@ namespace script {
           LOAD_KEY(SDL_SCANCODE_KP_7)
           LOAD_KEY(SDL_SCANCODE_KP_8)
           LOAD_KEY(SDL_SCANCODE_KP_9)
+
+          LOAD_KEY(SDL_SCANCODE_UP)
+          LOAD_KEY(SDL_SCANCODE_LEFT)
+          LOAD_KEY(SDL_SCANCODE_DOWN)
+          LOAD_KEY(SDL_SCANCODE_RIGHT)
 
           lua_setfield(L, -2, "scancode");
 

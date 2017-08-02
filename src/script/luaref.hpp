@@ -19,6 +19,9 @@ namespace script {
 
     lua_State * push() const;
 
+    bool equal(lua_State * L, int idx);
+    bool operator==(const LuaRef & other);
+
     private:
     int i = LUA_NOREF;
     lua_State * L = NULL;

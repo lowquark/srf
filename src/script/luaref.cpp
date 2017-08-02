@@ -70,5 +70,35 @@ namespace script {
       return NULL;
     }
   }
+
+  bool LuaRef::equal(lua_State * L, int idx) {
+    if(this->L == L) {
+      lua_pushvalue(L, idx);
+      push();
+      if(lua_equal(L, -1, -2)) {
+        lua_pop(L, 2);
+        return true;
+      } else {
+        lua_pop(L, 2);
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+  bool LuaRef::operator==(const LuaRef & other) {
+    if(L == other.L) {
+      other.push();
+      push();
+      if(lua_equal(L, -1, -2)) {
+        lua_pop(L, 2);
+        return true;
+      } else {
+        lua_pop(L, 2);
+        return false;
+      }
+    }
+    return false;
+  }
 }
 
