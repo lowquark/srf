@@ -49,29 +49,41 @@ local function draw()
   gfx.flush()
 end
 
-local stop
+local input_events = {}
 
-local function handle_keydown(key)
-  print('Menu/handle_keydown()!')
+local function unlisten_events()
+  for k,v in pairs(input_events) do
+    input.off(k, v)
+  end
+end
+local function listen_events()
+  for k,v in pairs(input_events) do
+    input.on(k, v)
+  end
+end
+
+local function run_state(name)
+  unlisten_events()
+  require(name)()
+end
+
+function input_events.keydown(key)
+  print('menu: handle keydown!')
   if key == input.scancode.n then
-    stop()
-    require'game'()
+    run_state 'game'
     return
   end
   draw()
 end
-
-stop = function()
-  print('Menu/stop()!')
-  gfx.off('exposed', draw)
-  input.off('keydown', handle_keydown)
+function input_events.quit()
+  print('menu: handle quit!')
 end
 
 return function()
-  print('Menu/start()!')
+  print('menu: initializing!')
 
-  input.on('keydown', handle_keydown)
-  gfx.on('exposed', draw)
+  listen_events()
+
   draw()
 end
 

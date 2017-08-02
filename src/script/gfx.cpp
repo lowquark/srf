@@ -3,14 +3,11 @@
 
 #include <script/script_private.hpp>
 #include <script/luaref.hpp>
-#include <script/event.hpp>
 
 #include <memory>
 
 namespace script {
   namespace gfx {
-    static script::LuaEventEmitter exposed_event;
-
     struct CallCreateWindowCallback : public script::Action {
       public:
       CallCreateWindowCallback(bool success, LuaRef && function)
@@ -71,12 +68,6 @@ namespace script {
       LuaRef lua_function;
     };
 
-    struct EmitExposed : public script::Action {
-      void operator()() override {
-        exposed_event.emit();
-      }
-    };
-
     // gfx.create_window
     static int create_window(lua_State * L) {
       int window_size_x = luaL_checkint(L, 1);
@@ -116,6 +107,7 @@ namespace script {
       return 0;
     }
 
+    /*
     // gfx.on
     static int on(lua_State * L) {
       const char * events[] = { "exposed", NULL };
@@ -140,6 +132,7 @@ namespace script {
 
       return 0;
     }
+    */
 
     // gfx.clip
     static int clip(lua_State * L) {
@@ -283,8 +276,6 @@ namespace script {
       { "create_window", create_window },
       {         "flush", flush         },
       {         "clear", clear         },
-      {            "on", on            },
-      {           "off", off           },
       {          "clip", clip          },
       {        "unclip", unclip        },
       {       "Tilemap", Tilemap       },
@@ -320,18 +311,9 @@ namespace script {
       return 1;
     }
     void clear_lua_refs() {
-      exposed_event.clear();
     }
 
     bool handle_sdl_event(const SDL_Event * event) {
-      if(event->type == SDL_WINDOWEVENT) {
-        // assumes single window
-        if(event->window.event == SDL_WINDOWEVENT_EXPOSED) {
-          emit<EmitExposed>();
-          return true;
-        }
-      }
-
       return false;
     }
   }

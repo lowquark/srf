@@ -240,6 +240,14 @@ namespace gfx {
       delete action;
 
       return true;
+    } else if(event->type == SDL_WINDOWEVENT) {
+      // assumes single window
+      if(event->window.event == SDL_WINDOWEVENT_EXPOSED) {
+        if(window) {
+          SDL_GL_SwapWindow(window);
+        }
+        return true;
+      }
     }
 
     return false;
