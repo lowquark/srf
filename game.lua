@@ -5,55 +5,14 @@ local input = require 'input'
 local guy_x = 1
 local guy_y = 1
 
--- objects
-local tree_ctors = {}
-function tree_ctors.nice()
-  return {
-    hp = 20,
-    df = 20,
-    color = { r = 0x33, g = 0x66, b = 0x33 },
-    glyph = 6 + 4*16,
-  }
-end
-function tree_ctors.mean()
-  return {
-    hp = 30,
-    df = 30,
-    color = { r = 0x22, g = 0x55, b = 0x33 },
-    glyph = 5 + 4*16,
-  }
-end
-local function Tree(type)
-  return tree_ctors[type]()
-end
+local objects = require 'objects'
+local tiles = require 'tiles'
+
 
 -- tiles
-local function GrassTile()
-  return {
-    color = { r = 0x22, g = 0x55, b = 0x33 },
-    bgcolor = { r = 0x11, g = 0x22, b = 0x22 },
-    glyph = 5 + 6*16,
-  }
-end
-local function PathTile()
-  return {
-    color = { r = 0x44, g = 0x44, b = 0x22 },
-    bgcolor = { r = 0x11, g = 0x22, b = 0x22 },
-    glyph = 5 + 6*16,
-  }
-end
-local function BadnessTile()
-  return {
-    color = { r = 0xBB, g = 0x22, b = 0x11 },
-    bgcolor = { r = 0x88, g = 0x44, b = 0x22 },
-    glyph = 9 + 7*16,
-    bad = true,
-  }
-end
-
-local hl_terrain = require('Field')(4, 4, 30, 30, 'badness')
-for y=4,30 do
-  for x=4,30 do
+local hl_terrain = require('Field')(0, 0, 31, 31, 'badness')
+for y=0,31 do
+  for x=0,31 do
     local p = 20
     if x > 10 then
       p = 2
@@ -66,17 +25,17 @@ for y=4,30 do
 end
 
 --local tree_field = require('Field')(0, 0, 15, 15, tree_indices[1])
-local tiles = hl_terrain:copy()
-tiles:map(function(val)
+local tile_field = hl_terrain:copy()
+tile_field:map(function(val)
   if val == 'forest' then
     local r = math.random(6)
     if r <= 3 then
-      return GrassTile()
+      return tiles.Grass()
     else
-      return PathTile()
+      return tiles.Path()
     end
   else
-    return BadnessTile()
+    return tiles.Badness()
   end
 end)
 
@@ -85,9 +44,9 @@ object_field:map(function(val)
   if val == 'forest' then
     local r = math.random(6)
     if r <= 3 then
-      return Tree('nice')
+      return objects.NiceTree()
     elseif r <= 4 then
-      return Tree('mean')
+      return objects.MeanTree()
     end
   end
 end)
@@ -99,7 +58,7 @@ local function draw()
   for y=0,31 do
     for x=0,31 do
       local object = object_field:get(x, y)
-      local tile = tiles:get(x, y) or BadnessTile()
+      local tile = tile_field:get(x, y) or tiles.Badness()
 
       if tile then
         if object then
@@ -155,7 +114,7 @@ function input_events.keydown(key)
     return
   end
 
-  local tile = tiles:get(guy_x, guy_y)
+  local tile = tile_field:get(guy_x, guy_y)
   if not tile or tile.bad then
     print('you fuckin died in the badness')
     run_state 'menu'
