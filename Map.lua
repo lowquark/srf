@@ -14,7 +14,7 @@ function Map_mt.__index.get(self, i, j)
      j >= 0 and j < h then
     return self[i + j * w]
   else
-    error(string.format('cannot get invalid Map index (%d, %d)', i, j))
+    return nil
   end
 end
 function Map_mt.__index.set(self, i, j, val)
@@ -32,7 +32,7 @@ function Map_mt.__index.each(self, fn)
   local idx = 0
   for j=0,self._h-1 do
     for i=0,self._w-1 do
-      fn(i, j, self[idx], idx)
+      fn(i, j, self[idx])
       idx = idx + 1
     end
   end

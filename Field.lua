@@ -1,47 +1,39 @@
 
 Field_mt = { __index = {} }
 
-function Field_mt.__index.set(self, x, y, val)
-  local x_idx = x - self._xmin
-  local y_idx = y - self._ymin
+local Map = require 'Map'
 
-  local w = self._w
-  local h = self._h
-
-  if x_idx >= 0 and x_idx < w and
-     y_idx >= 0 and y_idx < h then
-    local idx = x_idx + y_idx * w
-    self[idx] = val
-  else
-    error(string.format('cannot set invalid Field index (%d, %d)', x, y))
-  end
+function Field_mt.__index.contains(self, x, y)
+  return self._map:contains(x - self._xmin, y - self._ymin)
 end
 function Field_mt.__index.get(self, x, y)
-  local x_idx = x - self._xmin
-  local y_idx = y - self._ymin
-
-  local w = self._w
-  local h = self._h
-
-  if x_idx >= 0 and x_idx < w and
-     y_idx >= 0 and y_idx < h then
-    local idx = x_idx + y_idx * w
-    return self[idx]
-  else
-    return self._default
-  end
+  return self._map:get(x - self._xmin, y - self._ymin)
 end
-function Field_mt.__index.each(self, fn)
-  local idx = 0
-  for y=self._ymin,self._ymax do
-    for x=self._xmin,self._xmax do
-      fn(x, y, self[idx])
-      idx = idx + 1
-    end
-  end
+function Field_mt.__index.set(self, x, y, val)
+  self._map:set(x - self._xmin, y - self._ymin, val)
 end
 
-return function(xa, ya, xb, yb, default)
+function Map_mt.__index.each(self, fn)
+  self._map:each(function(i, j, val)
+    fn(self._xmin + i,
+       self._ymin + j,
+       val)
+  end)
+end
+function Field_mt.__index.map(self, fn)
+  self._map:map(fn)
+end
+function Field_mt.__index.copy(self)
+  local f = {
+    _xmin = self._xmin,
+    _ymin = self._ymin,
+    _map = self._map:copy(),
+  }
+
+  return setmetatable(f, Field_mt)
+end
+
+return function(xa, ya, xb, yb, fill)
   local xmin = math.min(xa, xb)
   local xmax = math.max(xa, xb)
   local ymin = math.min(ya, yb)
@@ -50,19 +42,12 @@ return function(xa, ya, xb, yb, default)
   local w = xmax - xmin + 1
   local h = ymax - ymin + 1
 
-  local f = {}
-  for i=0,w*h-1 do
-    f[i] = default
-  end
-
-  return setmetatable({
-    _default = default,
+  local f = {
     _xmin = xmin,
-    _xmax = xmax,
     _ymin = ymin,
-    _ymax = ymax,
-    _w = w,
-    _h = h,
-  }, Field_mt)
+    _map = Map(w, h, fill),
+  }
+
+  return setmetatable(f, Field_mt)
 end
 

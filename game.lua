@@ -51,17 +51,19 @@ local function BadnessTile()
   }
 end
 
-local hl_terrain = require('Map')(32, 32)
-hl_terrain:each(function(i, j, value)
-  local p = 20
-  if i > 10 then
-    p = 2
-  end
+local hl_terrain = require('Field')(4, 4, 30, 30, 'badness')
+for y=4,30 do
+  for x=4,30 do
+    local p = 20
+    if x > 10 then
+      p = 2
+    end
 
-  if math.random(p) ~= 1 then
-    hl_terrain:set(i, j, 'forest')
+    if math.random(p) ~= 1 then
+      hl_terrain:set(x, y, 'forest')
+    end
   end
-end)
+end
 
 --local tree_field = require('Field')(0, 0, 15, 15, tree_indices[1])
 local tiles = hl_terrain:copy()
@@ -97,7 +99,7 @@ local function draw()
   for y=0,31 do
     for x=0,31 do
       local object = object_field:get(x, y)
-      local tile = tiles:get(x, y)
+      local tile = tiles:get(x, y) or BadnessTile()
 
       if tile then
         if object then
