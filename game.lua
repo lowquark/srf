@@ -55,16 +55,12 @@ end
 function input_events.keydown(key)
   print('game: handle keydown!')
   if key == input.scancode.right then
-    print('6!')
     guy_x = guy_x + 1
   elseif key == input.scancode.up then
-    print('8!')
     guy_y = guy_y - 1
   elseif key == input.scancode.left then
-    print('4!')
     guy_x = guy_x - 1
   elseif key == input.scancode.down then
-    print('2!')
     guy_y = guy_y + 1
   elseif key == input.scancode.m then
     run_state 'menu'
