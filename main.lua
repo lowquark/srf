@@ -16,7 +16,7 @@ lab:set_background(0x00, 0x00, 0x00, 0x00)
 lab:set_padding(5)
 ]]--
 
-gfx.create_window(16*16, 16*16, false, function (status)
+gfx.create_window(32*16, 32*16, false, function (status)
   if not status then error('failed to create window...!') return end
 
   require'menu'()
