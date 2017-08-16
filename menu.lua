@@ -71,7 +71,6 @@ local function run_state(name)
 end
 
 function input_events.keydown(key)
-  print('menu: handle keydown!')
   if key == input.scancode.n then
     run_state 'game'
     return
@@ -79,7 +78,6 @@ function input_events.keydown(key)
   draw()
 end
 function input_events.quit()
-  print('menu: handle quit!')
 end
 
 return function()

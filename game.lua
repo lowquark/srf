@@ -100,7 +100,6 @@ local function run_state(name)
 end
 
 function input_events.keydown(key)
-  print('game: handle keydown!')
   if key == input.scancode.right then
     guy_x = guy_x + 1
   elseif key == input.scancode.up then
@@ -124,7 +123,6 @@ function input_events.keydown(key)
   draw()
 end
 function input_events.quit()
-  print('game: handle quit!')
 end
 
 return function()
