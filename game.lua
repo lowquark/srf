@@ -9,6 +9,20 @@ local objects = require 'objects'
 local tiles = require 'tiles'
 
 
+local function Glyph()
+  return { 
+    color = { r = 0xFF, g = 0xFF, b = 0xFF },
+    index = 8,
+  }
+end
+local function TileGlyph()
+  return { 
+    color = { r = 0x33, g = 0x33, b = 0x33 },
+    bgcolor = { r = 0x00, g = 0x00, b = 0x22 },
+    index = 7,
+  }
+end
+
 -- tiles
 local hl_terrain = require('Field')(0, 0, 31, 31, 'badness')
 for y=0,31 do
@@ -61,15 +75,25 @@ local function draw()
       local tile = tile_field:get(x, y) or tiles.Badness()
 
       if tile then
+        local tile_glyph = tile:message('tile_glyph', TileGlyph())
         if object then
-          tm:set_index(x, y, object.glyph)
-          tm:set_foreground(x, y, object.color.r, object.color.g, object.color.b)
+          local glyph = object:message('glyph', Glyph())
+          tm:set_index(x, y, glyph.index)
+          tm:set_foreground(x, y, glyph.color.r,
+                                  glyph.color.g,
+                                  glyph.color.b)
+          tm:set_background(x, y, tile_glyph.bgcolor.r,
+                                  tile_glyph.bgcolor.g,
+                                  tile_glyph.bgcolor.b)
         else
-          tm:set_index(x, y, tile.glyph)
-          tm:set_foreground(x, y, tile.color.r, tile.color.g, tile.color.b)
+          tm:set_index(x, y, tile_glyph.index)
+          tm:set_foreground(x, y, tile_glyph.color.r,
+                                  tile_glyph.color.g,
+                                  tile_glyph.color.b)
+          tm:set_background(x, y, tile_glyph.bgcolor.r,
+                                  tile_glyph.bgcolor.g,
+                                  tile_glyph.bgcolor.b)
         end
-
-        tm:set_background(x, y, tile.bgcolor.r, tile.bgcolor.g, tile.bgcolor.b)
       end
     end
   end
@@ -114,7 +138,7 @@ function input_events.keydown(key)
   end
 
   local tile = tile_field:get(guy_x, guy_y)
-  if not tile or tile.bad then
+  if tile and tile:message('bad').bad then
     print('you fuckin died in the badness')
     run_state 'menu'
     return
