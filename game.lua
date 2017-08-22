@@ -1,13 +1,14 @@
 
 local gfx = require 'gfx'
 local input = require 'input'
+local module = require 'module'
+local gamesaves = require 'gamesaves'
 
 local guy_x = 1
 local guy_y = 1
 
 local objects = require 'objects'
 local tiles = require 'tiles'
-
 
 local function Glyph()
   return { 
@@ -105,25 +106,7 @@ local function draw()
   gfx.flush()
 end
 
-local input_events = {}
-
-local function unlisten_events()
-  for k,v in pairs(input_events) do
-    input.off(k, v)
-  end
-end
-local function listen_events()
-  for k,v in pairs(input_events) do
-    input.on(k, v)
-  end
-end
-
-local function run_state(name)
-  unlisten_events()
-  require(name)()
-end
-
-function input_events.keydown(key)
+function handle_keydown(key)
   if key == input.scancode.right then
     guy_x = guy_x + 1
   elseif key == input.scancode.up then
@@ -133,29 +116,52 @@ function input_events.keydown(key)
   elseif key == input.scancode.down then
     guy_y = guy_y + 1
   elseif key == input.scancode.m then
-    run_state 'menu'
+    gamesaves.save('guy', { guy = { x = guy_x, y = guy_y }})
+    module.next(require 'menu')
     return
   end
 
   local tile = tile_field:get(guy_x, guy_y)
   if tile and tile:message('bad').bad then
     print('you fuckin died in the badness')
-    run_state 'menu'
+    -- delete save
+    gamesaves.delete('guy')
+    -- create morgue file
+    --...?
+    module.next(require 'menu')
     return
   end
 
   draw()
 end
-function input_events.quit()
+function handle_quit()
+  gamesaves.save('guy', { guy = { x = guy_x, y = guy_y }})
 end
 
-return function()
-  print('game: initializing!')
-  guy_x = 1
-  guy_y = 1
+local game = {}
+function game:init(gamestate)
+  print('game:init()')
 
-  listen_events()
+  if gamestate then
+    guy_x = gamestate.guy.x
+    guy_y = gamestate.guy.y
+  else
+    guy_x = 1
+    guy_y = 1
+  end
+
+  input.on('keydown', handle_keydown)
+  input.on('quit', handle_quit)
 
   draw()
 end
+
+function game:deinit()
+  print('game:deinit()')
+
+  input.off('keydown', handle_keydown)
+  input.off('quit', handle_quit)
+end
+
+return game
 

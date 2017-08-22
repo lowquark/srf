@@ -1,6 +1,8 @@
 
 local gfx = require 'gfx'
 local input = require 'input'
+local module = require 'module'
+local gamesaves = require 'gamesaves'
 
 local tm = gfx.Tilemap(32, 32)
 tm:set_tileset('file://super_tiles')
@@ -52,39 +54,32 @@ local function draw()
   gfx.flush()
 end
 
-local input_events = {}
-
-local function unlisten_events()
-  for k,v in pairs(input_events) do
-    input.off(k, v)
-  end
-end
-local function listen_events()
-  for k,v in pairs(input_events) do
-    input.on(k, v)
-  end
-end
-
-local function run_state(name)
-  unlisten_events()
-  require(name)()
-end
-
-function input_events.keydown(key)
+local function handle_keydown(key)
   if key == input.scancode.n then
-    run_state 'game'
+    module.next(require 'game', gamesaves.load('guy'))
     return
   end
   draw()
 end
-function input_events.quit()
+local function handle_quit()
+  module.next(nil)
 end
 
-return function()
-  print('menu: initializing!')
+local menu = {}
+function menu:init()
+  print('menu:init()')
 
-  listen_events()
+  input.on('keydown', handle_keydown)
+  input.on('quit', handle_quit)
 
   draw()
 end
+function menu:deinit()
+  print('menu:deinit()')
+
+  input.off('keydown', handle_keydown)
+  input.off('quit', handle_quit)
+end
+
+return menu
 

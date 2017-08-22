@@ -4,3 +4,4 @@ srf
 *.swo
 *.o
 valgrind_suppressions.txt
+saves/

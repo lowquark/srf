@@ -20,13 +20,6 @@ function parts.BasicGlyph(glyph)
   return p
 end
 
-local f = io.open('test_save', 'rw')
-if f then
-  local p = parts.BasicGlyph({ color = { r = 0xFF, g = 0xFF, b = 0xFF }, index = 5 })
-  f:write(p:save())
-  p:load(f:read())
-end
-
 function parts.BasicTileGlyph(tile_glyph)
   local p = {}
   p.type = 'BasicTileGlyph'
