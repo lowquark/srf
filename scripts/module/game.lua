@@ -1,7 +1,8 @@
 
-local gfx = require 'gfx'
-local input = require 'input'
+local gfx = require 'srf.gfx'
+local input = require 'srf.input'
 local module = require 'module'
+local inspect = require 'inspect'
 
 local gamesaves = require 'gamesaves'
 local state = require 'game.state'
@@ -98,6 +99,7 @@ local function update_gamestate()
 end
 local function save_game()
   update_gamestate()
+  --print(inspect(gamestate))
   gamesaves.save('dracula', gamestate)
 end
 -- loads a gamestate
@@ -203,10 +205,14 @@ function handle_keydown(key)
     return
   end
 
-  local tile = level.tiles[guy_x + guy_y * level.width + 1]
+  if guy_x >= 0 and guy_x < level.width and
+     guy_y >= 0 and guy_y < level.height then
+    local idx = guy_x + guy_y * level.width + 1
+    local tile = level.tiles[idx]
 
-  if tile and tile[1] then
-    tile[1].color.r = 0xFF
+    if tile and tile[1] then
+      tile[1].color.r = 0xFF
+    end
   end
 
   --[[
@@ -231,8 +237,6 @@ end
 local game = {}
 function game:init(gamestate)
   print('game:init()')
-
-  print('gamestate: '..tostring(gamestate))
 
   if gamestate then
     load_game(gamestate)

@@ -1,6 +1,7 @@
 
-local gfx = require 'gfx'
-local input = require 'input'
+local gfx = require 'srf.gfx'
+local input = require 'srf.input'
+
 local module = require 'module'
 local gamesaves = require 'gamesaves'
 

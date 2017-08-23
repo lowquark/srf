@@ -1,8 +1,8 @@
 #!/usr/bin/luajit
 
-local timer = require 'timer'
-local gfx = require 'gfx'
-local input = require 'input'
+local timer = require 'srf.timer'
+local gfx = require 'srf.gfx'
+local input = require 'srf.input'
 
 local module = require 'module'
 

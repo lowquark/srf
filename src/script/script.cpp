@@ -53,11 +53,11 @@ namespace script {
   };
 
   static luaL_Reg module_loaders[] = {
-    { "input", input::luaopen },
-    {   "gfx", gfx::luaopen   },
-    { "timer", timer::luaopen },
-    { "image", image::luaopen },
-    {  "font", font::luaopen  },
+    { "srf.input", input::luaopen },
+    { "srf.gfx",   gfx::luaopen   },
+    { "srf.timer", timer::luaopen },
+    { "srf.image", image::luaopen },
+    { "srf.font",  font::luaopen  },
     { NULL, NULL },
   };
 
