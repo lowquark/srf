@@ -56,7 +56,7 @@ end
 
 local function handle_keydown(key)
   if key == input.scancode.n then
-    module.next(require 'game', gamesaves.load('dracula'))
+    module.next(require 'module.game', gamesaves.load('dracula'))
     return
   end
   draw()

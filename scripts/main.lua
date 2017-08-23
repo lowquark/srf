@@ -1,7 +1,5 @@
 #!/usr/bin/luajit
 
-local EventEmitter = require 'EventEmitter'
-
 local timer = require 'timer'
 local gfx = require 'gfx'
 local input = require 'input'
@@ -20,6 +18,6 @@ lab:set_padding(5)
 
 gfx.create_window(32*16, 32*16, false, function (status)
   if not status then error('failed to create window...!') return end
-  module.next(require 'menu')
+  module.next(require 'module.menu')
 end)
 

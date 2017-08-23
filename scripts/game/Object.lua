@@ -1,9 +1,12 @@
 
+local state = require 'game.state'
+
 local Object_mt = { __index = {} }
 
 function Object_mt.__index:attach(p)
   table.insert(self, p)
 end
+--[[
 function Object_mt.__index:notify(...)
   for i,v in ipairs(self) do
     if v.notify then
@@ -46,16 +49,16 @@ function Object_mt.__index:save_state()
 
   return state
 end
+]]
 
-return function(state)
-  if state then
-    local o = {}
-    for i,s in ipairs(state) do
-      o[i] = parts.Part(s)
-    end
-    return setmetatable(o, Object_mt)
-  else
-    return setmetatable({}, Object_mt)
+function Object_mt.__index:save_state()
+  local st = state.Object()
+  for i,p in ipairs(self) do
+    st[i] = p
   end
+  return st
+end
+return function()
+  return setmetatable({}, Object_mt)
 end
 

@@ -2,8 +2,11 @@
 local gfx = require 'gfx'
 local input = require 'input'
 local module = require 'module'
+
 local gamesaves = require 'gamesaves'
-local state = require 'state'
+local state = require 'game.state'
+local Level = require 'game.Level'
+local Object = require 'game.Object'
 
 local guy_x = 1
 local guy_y = 1
@@ -51,48 +54,6 @@ object_field:map(function(val)
   end
 end)
 ]]
-
-local Object_mt = { __index = {} }
-function Object_mt.__index:attach(p)
-  table.insert(self, p)
-end
-function Object_mt.__index:save_state()
-  local st = state.Object()
-  for i,p in ipairs(self) do
-    st[i] = p
-  end
-  return st
-end
-local function Object()
-  return setmetatable({}, Object_mt)
-end
-
-local Level_mt = { __index = {} }
-function Level_mt.__index:save_state()
-  local st = state.Level(self.width, self.height)
-
-  -- save the state of all tiles
-  for i=1,self.width*self.height do
-    if self.tiles[i] then
-      st.tiles[i] = self.tiles[i]:save_state()
-    end
-  end
-
-  -- save the state of all objects
-  for i,o in ipairs(self.objects) do
-    st.objects[i] = o:save_state()
-  end
-
-  return st
-end
-local function Level(w, h, tiles, objects)
-  return setmetatable({
-    width = w or 0,
-    height = h or 0,
-    tiles = tiles or {},
-    objects = objects or {},
-  }, Level_mt)
-end
 
 local function load_state(st)
   if st.__type == 'Level' then
@@ -238,7 +199,7 @@ function handle_keydown(key)
     guy_y = guy_y + 1
   elseif key == input.scancode.m then
     save_game()
-    module.next(require 'menu')
+    module.next(require 'module.menu')
     return
   end
 

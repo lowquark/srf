@@ -70,14 +70,18 @@ namespace script {
     luaL_openlibs(L);
 
     lua_getglobal(L, "package");
+      lua_pushstring(L, "./scripts/?.lua");
+        lua_setfield(L, -2, "path");
+      lua_pushstring(L, "");
+        lua_setfield(L, -2, "cpath");
+
       lua_getfield(L, -1, "preload");
         luaL_register(L, NULL, module_loaders);
         lua_pop(L, 2);
 
-    if(luaL_dofile(L, script_name)) {
-      printf("%s\n", lua_tostring(L, -1));
-      lua_pop(L, 1);
-    }
+    lua_getglobal(L, "require");
+    lua_pushstring(L, "main");
+    lua_call(L, 1, 0);
 
     task_run = true;
     while(task_run) {
