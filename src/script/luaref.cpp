@@ -50,8 +50,8 @@ namespace script {
   void LuaRef::clear() {
     if(L) {
       luaL_unref(L, LUA_REGISTRYINDEX, i);
-      L = NULL;
       i = LUA_NOREF;
+      L = NULL;
     }
   }
   void LuaRef::set(lua_State * L, int idx) {

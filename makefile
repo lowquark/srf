@@ -2,6 +2,7 @@
 srf: build/srf.o \
 	   build/util/Image.o \
 	   build/util/load_png.o \
+		 build/db/db.o \
 		 build/gfx/gfx.o \
 		 build/gfx/draw.o \
 		 build/gfx/Tilemap.o \
@@ -13,10 +14,9 @@ srf: build/srf.o \
 		 build/script/gfx.o \
 		 build/script/input.o \
 		 build/script/timer.o \
-		 build/script/font.o \
-		 build/script/image.o
+		 build/script/db.o
 	
-	g++ -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU -lpng -lz
+	g++ -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU -lpng -lz -lpthread
 
 build/%.o: src/%.cpp
 	@mkdir --parents ${@D}

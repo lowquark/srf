@@ -3,6 +3,17 @@
 local timer = require 'srf.timer'
 local gfx = require 'srf.gfx'
 local input = require 'srf.input'
+local db = require 'srf.db' . KVStore()
+
+db:open('test_save', function(succ)
+  print('db:open(): '..tostring(succ))
+end)
+db:read('asdfasdf', function(value)
+  print('db:read(`asdfasdf`): `'..tostring(value)..'`')
+end)
+db:write('somekey', 'something', function()
+  print('db:write(...) finished!')
+end)
 
 local module = require 'module'
 

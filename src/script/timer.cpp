@@ -51,7 +51,7 @@ namespace script {
         if(!canceled()) {
           lua_State * L = callback.push();
           if(L) {
-            lua_call(L, 0, 0);
+            pcall(L, 0, 0);
           }
         }
       }

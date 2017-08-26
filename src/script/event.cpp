@@ -1,5 +1,6 @@
 
 #include "event.hpp"
+#include <script/script_private.hpp>
 
 #include <stdlib.h>
 
@@ -26,7 +27,7 @@ namespace script {
     for(auto & ref : listeners) {
       lua_State * L = ref.push();
       if(L) {
-        lua_call(L, 0, 0);
+        pcall(L, 0, 0);
       }
     }
   }
@@ -35,7 +36,7 @@ namespace script {
       lua_State * L = ref.push();
       if(L) {
         int nargs = pusher.push(L);
-        lua_call(L, nargs, 0);
+        pcall(L, nargs, 0);
       }
     }
   }

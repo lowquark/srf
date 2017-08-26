@@ -18,7 +18,7 @@ namespace script {
         lua_State * L = lua_function.push();
         if(L) {
           lua_pushboolean(L, success);
-          lua_call(L, 1, 0);
+          pcall(L, 1, 0);
           lua_function.clear();
         }
       }
@@ -47,7 +47,7 @@ namespace script {
       void operator()() override {
         lua_State * L = lua_function.push();
         if(L) {
-          lua_call(L, 0, 0);
+          pcall(L, 0, 0);
           lua_function.clear();
         }
       }
