@@ -5,3 +5,4 @@ srf
 *.o
 valgrind_suppressions.txt
 saves/
+world/

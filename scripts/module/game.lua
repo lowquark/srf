@@ -3,8 +3,8 @@ local gfx = require 'srf.gfx'
 local input = require 'srf.input'
 local module = require 'module'
 local inspect = require 'inspect'
+local WorldSave = require 'WorldSave'
 
-local gamesaves = require 'gamesaves'
 local state = require 'game.state'
 local Level = require 'game.Level'
 local Object = require 'game.Object'
@@ -82,51 +82,36 @@ local function load_state(st)
   end
 end
 
--- buffered gamestate
-local gamestate = nil
+local world_save = nil
 -- currently loaded level
 local level = nil
 
 local tm = gfx.Tilemap(32, 32)
 tm:set_tileset('file://super_tiles')
 
--- compiles a gamestate from loaded game
-local function update_gamestate()
-  gamestate.guy_x = guy_x
-  gamestate.guy_y = guy_y
-
-  gamestate.levels['forest'] = level:save_state()
-end
 local function save_game()
-  update_gamestate()
-  --print(inspect(gamestate))
-  gamesaves.save('dracula', gamestate)
+  world_save:write_page('gamestate', { guy_x = guy_x, guy_y = guy_y })
+  world_save:write_page('forest', level:save_state())
 end
--- loads a gamestate
-local function load_game(g)
-  gamestate = g
-
+local function load_game()
+  local gamestate = world_save:read_page('gamestate')
   guy_x = gamestate.guy_x
   guy_y = gamestate.guy_y
 
-  level = load_state(gamestate.levels['forest'])
+  level = load_state(world_save:read_page('forest'))
 end
 
 -- creates a brand new gamestate
-local function new_game()
-  local g = state.Game()
+local function new_game(world_save)
+  world_save:write_page('gamestate', { guy_x = 1, guy_y = 1 })
+
   local l = state.Level(64, 64)
   for i=1,64*64 do
     l.tiles[i] = state.Object{
       state.TileGlyph(5 + 6*16, 0x22, 0x55, 0x33, 0x11, 0x22, 0x22),
     }
   end
-  g.levels['forest'] = l
-
-  g.guy_x = 1
-  g.guy_y = 1
-
-  return g
+  world_save:write_page('forest', l)
 end
 
 local function draw()
@@ -235,13 +220,17 @@ function handle_quit()
 end
 
 local game = {}
-function game:init(gamestate)
+function game:init(save_name)
   print('game:init()')
 
+  world_save = WorldSave(save_name)
+
+  local gamestate = world_save:read_page('gamestate')
   if gamestate then
-    load_game(gamestate)
+    load_game()
   else
-    load_game(new_game())
+    new_game(world_save)
+    load_game()
   end
 
   input.on('keydown', handle_keydown)
