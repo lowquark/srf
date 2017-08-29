@@ -1,5 +1,5 @@
-#ifndef LUAREF_H
-#define LUAREF_H
+#ifndef SCRIPT_LUAREF_HPP
+#define SCRIPT_LUAREF_HPP
 
 #include <lua5.1/lua.hpp>
 
@@ -19,7 +19,7 @@ namespace script {
 
     lua_State * push() const;
 
-    bool equal(lua_State * L, int idx);
+    //bool equal(lua_State * L, int idx);
     bool operator==(const LuaRef & other);
 
     private:

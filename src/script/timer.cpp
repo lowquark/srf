@@ -1,6 +1,6 @@
 
 #include <script/script_private.hpp>
-#include <script/luaref.hpp>
+#include <script/LuaRef.hpp>
 
 #include <SDL2/SDL_timer.h>
 #include <vector>

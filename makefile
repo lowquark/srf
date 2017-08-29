@@ -2,15 +2,15 @@
 srf: build/srf.o \
 	   build/util/Image.o \
 	   build/util/load_png.o \
-	   build/util/AsyncContext2.o \
+	   build/util/AsyncContext.o \
 		 build/db/db.o \
 		 build/gfx/gfx.o \
 		 build/gfx/draw.o \
 		 build/gfx/Tilemap.o \
 		 build/gfx/gl/Texture.o \
 		 build/gfx/gl/Program.o \
-		 build/script/luaref.o \
-		 build/script/event.o \
+		 build/script/LuaRef.o \
+		 build/script/LuaEventEmitter.o \
 		 build/script/script.o \
 		 build/script/gfx.o \
 		 build/script/input.o \
@@ -25,6 +25,6 @@ build/%.o: src/%.cpp
 
 .PHONY: clean
 clean:
-	rm srf
-	rm -r build/
+	rm -f ./srf
+	rm -rf build/
 

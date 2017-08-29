@@ -1,8 +1,9 @@
-#ifndef SCRIPT_CALL_HPP
-#define SCRIPT_CALL_HPP
+#ifndef SCRIPT_LUATUPLE_HPP
+#define SCRIPT_LUATUPLE_HPP
 
-#include <script/luaref.hpp>
-#include <util/AsyncContext.hpp>
+#include <lua5.1/lua.hpp>
+#include <script/LuaRef.hpp>
+#include <string>
 
 namespace script {
   class BaseLuaTuple {
@@ -11,12 +12,10 @@ namespace script {
   };
 
   template <typename ... T>
-  class LuaTuple : public BaseLuaTuple {
-  };
+  class LuaTuple;
 
-  template <>
-  class LuaTuple <> : public BaseLuaTuple {
-  };
+  // In the future, will need to come up with some variadic metawitchcraft to
+  // handle any number of arguments. For now, just hardcode ;)
   template <>
   class LuaTuple <bool> : public BaseLuaTuple {
     bool b;
@@ -56,42 +55,6 @@ namespace script {
       lua_pushlstring(L, str.c_str(), str.size());
       return 1;
     };
-  };
-
-  template <typename ... TArgs>
-  class Call : public AsyncContext::Action {
-    LuaTuple<typename std::decay<TArgs>::type ...> args;
-    LuaRef fn;
-
-    public:
-    Call(LuaRef && fn, TArgs ... args)
-      : args(std::forward<TArgs...>(args...))
-      , fn((LuaRef &&)fn) {}
-
-    void operator()() override {
-      lua_State * L = fn.push();
-      if(L) {
-        int nargs = args.push(L);
-        pcall(L, nargs, 0);
-        fn.clear();
-      }
-    }
-  };
-  template <>
-  class Call <> : public AsyncContext::Action {
-    LuaRef fn;
-
-    public:
-    Call(LuaRef && fn)
-      : fn((LuaRef &&)fn) {}
-
-    void operator()() override {
-      lua_State * L = fn.push();
-      if(L) {
-        pcall(L, 0, 0);
-        fn.clear();
-      }
-    }
   };
 }
 

@@ -1,7 +1,7 @@
 
 #include <script/script_private.hpp>
-#include <script/luaref.hpp>
-#include <script/Call.hpp>
+#include <script/LuaRef.hpp>
+#include <script/AsyncLuaCall.hpp>
 
 #include <db/db.hpp>
 #include <vector>
@@ -16,7 +16,7 @@ namespace script {
         : fn((LuaRef &&)fn) {}
       void operator()(bool succ) {
         actx->enqueue(
-            new Call<bool>(std::move(fn), succ));
+            new AsyncLuaCall<bool>(std::move(fn), succ));
       }
     };
     class ReadHandler : public ::db::AsyncKVStore::ReadHandler {
@@ -27,10 +27,10 @@ namespace script {
       void operator()(bool found, std::string && value) {
         if(found) {
           actx->enqueue(
-              new Call<std::string &&>(std::move(fn), (std::string &&)value));
+              new AsyncLuaCall<std::string &&>(std::move(fn), (std::string &&)value));
         } else {
           actx->enqueue(
-              new Call<nullptr_t>(std::move(fn), nullptr));
+              new AsyncLuaCall<nullptr_t>(std::move(fn), nullptr));
         }
       }
     };
@@ -40,7 +40,7 @@ namespace script {
       FinishHandler(LuaRef && fn)
         : fn((LuaRef &&)fn) {}
       void operator()() {
-        actx->enqueue(new Call<>(std::move(fn)));
+        actx->enqueue(new AsyncLuaCall<>(std::move(fn)));
       }
     };
 

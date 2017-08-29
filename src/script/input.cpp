@@ -2,7 +2,7 @@
 #include <SDL2/SDL_events.h>
 
 #include <script/script_private.hpp>
-#include <script/event.hpp>
+#include <script/LuaEventEmitter.hpp>
 
 namespace script {
   namespace input {
@@ -18,11 +18,11 @@ namespace script {
       int index = luaL_checkoption(L, 1, NULL, events);
 
       if(index == 0) {
-        quit_event.add_listener(L, 2);
+        quit_event.add_listener(LuaRef(L, 2));
       } else if(index == 1) {
-        keydown_event.add_listener(L, 2);
+        keydown_event.add_listener(LuaRef(L, 2));
       } else if(index == 2) {
-        keyup_event.add_listener(L, 2);
+        keyup_event.add_listener(LuaRef(L, 2));
       }
 
       return 0;
@@ -35,11 +35,11 @@ namespace script {
       int index = luaL_checkoption(L, 1, NULL, events);
 
       if(index == 0) {
-        quit_event.remove_listener(L, 2);
+        quit_event.remove_listener(LuaRef(L, 2));
       } else if(index == 1) {
-        keydown_event.remove_listener(L, 2);
+        keydown_event.remove_listener(LuaRef(L, 2));
       } else if(index == 2) {
-        keyup_event.remove_listener(L, 2);
+        keyup_event.remove_listener(LuaRef(L, 2));
       }
 
       return 0;
@@ -219,36 +219,16 @@ namespace script {
       unsigned int key;
       EmitKeyDown(unsigned int key) : key(key) {}
 
-      struct LuaPusher : public script::LuaPusher {
-        unsigned int key;
-
-        LuaPusher(unsigned int key) : key(key) {}
-        int push(lua_State * L) const override {
-          lua_pushinteger(L, key);
-          return 1;
-        }
-      };
-
       void operator()() override {
-        input::keydown_event.emit(LuaPusher(key));
+        input::keydown_event.emit(LuaTuple<int>(key));
       }
     };
     struct EmitKeyUp : public AsyncContext::Action {
       unsigned int key;
       EmitKeyUp(unsigned int key) : key(key) {}
 
-      struct LuaPusher : public script::LuaPusher {
-        unsigned int key;
-
-        LuaPusher(unsigned int key) : key(key) {}
-        int push(lua_State * L) const override {
-          lua_pushinteger(L, key);
-          return 1;
-        }
-      };
-
       void operator()() override {
-        input::keyup_event.emit(LuaPusher(key));
+        input::keydown_event.emit(LuaTuple<int>(key));
       }
     };
 

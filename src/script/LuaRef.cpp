@@ -1,5 +1,5 @@
 
-#include "luaref.hpp"
+#include "LuaRef.hpp"
 
 namespace script {
   LuaRef::LuaRef(lua_State * L, int idx) {
@@ -71,6 +71,7 @@ namespace script {
     }
   }
 
+  /*
   bool LuaRef::equal(lua_State * L, int idx) {
     if(this->L == L) {
       lua_pushvalue(L, idx);
@@ -86,6 +87,7 @@ namespace script {
       return false;
     }
   }
+  */
   bool LuaRef::operator==(const LuaRef & other) {
     if(L == other.L) {
       other.push();

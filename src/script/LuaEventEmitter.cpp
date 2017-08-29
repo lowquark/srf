@@ -1,5 +1,5 @@
 
-#include "event.hpp"
+#include "LuaEventEmitter.hpp"
 #include <script/script_private.hpp>
 
 #include <stdlib.h>
@@ -10,13 +10,13 @@ namespace script {
       ref.clear();
     }
   }
-  void LuaEventEmitter::add_listener(lua_State * L, int idx) {
-    listeners.push_back(LuaRef(L, idx));
+  void LuaEventEmitter::add_listener(LuaRef && fn) {
+    listeners.push_back((LuaRef &&)fn);
   }
-  void LuaEventEmitter::remove_listener(lua_State * L, int idx) {
+  void LuaEventEmitter::remove_listener(const LuaRef & fn) {
     for(auto it = listeners.begin() ;
         it != listeners.end() ; ) {
-      if(it->equal(L, idx)) {
+      if(*it == fn) {
         it = listeners.erase(it);
       } else {
         it ++;
@@ -31,11 +31,11 @@ namespace script {
       }
     }
   }
-  void LuaEventEmitter::emit(const LuaPusher & pusher) {
+  void LuaEventEmitter::emit(const BaseLuaTuple & args) {
     for(auto & ref : listeners) {
       lua_State * L = ref.push();
       if(L) {
-        int nargs = pusher.push(L);
+        int nargs = args.push(L);
         pcall(L, nargs, 0);
       }
     }

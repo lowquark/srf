@@ -2,55 +2,19 @@
 #include <gfx/gfx.hpp>
 
 #include <script/script_private.hpp>
-#include <script/luaref.hpp>
+#include <script/LuaRef.hpp>
+#include <script/AsyncLuaCall.hpp>
 
 #include <memory>
 
 namespace script {
   namespace gfx {
-    struct BoolCall : public AsyncContext::Action {
-      BoolCall(LuaRef && fn, bool b)
-        : fn((LuaRef &&)fn)
-        , b(b) {}
-
-      void operator()() override {
-        lua_State * L = fn.push();
-        if(L) {
-          lua_pushboolean(L, b);
-          pcall(L, 1, 0);
-          fn.clear();
-        }
-      }
-
-      private:
-      LuaRef fn;
-      bool b = false;
-    };
-    struct Call : public AsyncContext::Action {
-      Call(LuaRef && fn)
-        : fn((LuaRef &&)fn) {}
-
-      void operator()() override {
-        lua_State * L = fn.push();
-        if(L) {
-          pcall(L, 0, 0);
-          fn.clear();
-        }
-      }
-
-      private:
-      LuaRef fn;
-    };
-
     struct CreateWindowCallback : public ::gfx::CreateWindowCallback {
       CreateWindowCallback(LuaRef && fn)
         : fn((LuaRef &&)fn) {}
-
-      // gfx module callback
       virtual void operator()(bool success) {
-        script::actx->enqueue(new BoolCall(std::move(fn), success));
+        script::actx->enqueue(new AsyncLuaCall<bool>(std::move(fn), success));
       }
-
       private:
       LuaRef fn;
     };
@@ -58,12 +22,10 @@ namespace script {
     struct FlushCallback : public ::gfx::FlushCallback {
       FlushCallback(LuaRef && fn)
         : fn((LuaRef &&)fn) {}
-
       // gfx module callback
       void operator()() override {
-        script::actx->enqueue(new Call(std::move(fn)));
+        script::actx->enqueue(new AsyncLuaCall<>(std::move(fn)));
       }
-
       private:
       LuaRef fn;
     };
