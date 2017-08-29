@@ -95,7 +95,7 @@ local function save_game(world_save)
   world_save:write('gamestate', mp.pack({ guy_x = guy_x, guy_y = guy_y }))
   world_save:write('forest', mp.pack(level:save_state()))
 end
-local function load_game(world_save)
+local function load_game(world_save, on_finish)
   world_save:read('gamestate', function(str)
     local gamestate = mp.unpack(str)
     guy_x = gamestate.guy_x
@@ -105,6 +105,8 @@ local function load_game(world_save)
   end)
   world_save:read('forest', function(str)
     level = load_state(mp.unpack(str))
+
+    on_finish()
   end)
 end
 
@@ -235,10 +237,14 @@ function game:init(save_name)
     if success then
       world_save:read('gamestate', function(str)
         if str then
-          load_game(world_save)
+          load_game(world_save, function()
+            draw()
+          end)
         else
           new_game(world_save)
-          load_game(world_save)
+          load_game(world_save, function()
+            draw()
+          end)
         end
       end)
     end
@@ -246,8 +252,6 @@ function game:init(save_name)
 
   input.on('keydown', handle_keydown)
   input.on('quit', handle_quit)
-
-  draw()
 end
 
 function game:deinit()
