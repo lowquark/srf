@@ -228,7 +228,7 @@ namespace script {
       EmitKeyUp(unsigned int key) : key(key) {}
 
       void operator()() override {
-        input::keydown_event.emit(LuaTuple<int>(key));
+        input::keyup_event.emit(LuaTuple<int>(key));
       }
     };
 
