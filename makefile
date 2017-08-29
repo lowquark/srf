@@ -16,7 +16,7 @@ srf: build/srf.o \
 		 build/script/timer.o \
 		 build/script/db.o
 	
-	g++ -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU -lpng -lz -lpthread
+	g++ -Wno-unused -Wall -Wpedantic -Werror -g -o $@ $^ -lluajit-5.1 -lSDL2 -lGLEW -lGL -lGLU -lpng -lz -lpthread -lgdbm
 
 build/%.o: src/%.cpp
 	@mkdir --parents ${@D}

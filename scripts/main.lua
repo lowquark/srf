@@ -1,21 +1,36 @@
-#!/usr/bin/luajit
 
-local timer = require 'srf.timer'
-local gfx = require 'srf.gfx'
-local input = require 'srf.input'
+--[[
 local db = require 'srf.db' . KVStore()
 
 db:open('test_save', function(succ)
   print('db:open(): '..tostring(succ))
+  io.flush()
+end)
+db:write('asdfasdf', 'something', function()
+  print('db:write(`asdfasdf`, `something`) finished!')
+  io.flush()
+end)
+db:write('asdfasdf', 'something2', function()
+  print('db:write(`asdfasdf`, `something2`) finished!')
+  io.flush()
+end)
+db:write('asdfasdf', 'something3', function()
+  print('db:write(`asdfasdf`, `something3`) finished!')
+  io.flush()
+end)
+db:write('asdfasdf', 'something4', function()
+  print('db:write(`asdfasdf`, `something4`) finished!')
+  io.flush()
 end)
 db:read('asdfasdf', function(value)
   print('db:read(`asdfasdf`): `'..tostring(value)..'`')
+  io.flush()
 end)
-db:write('somekey', 'something', function()
-  print('db:write(...) finished!')
-end)
+db:close()
+]]
 
 local module = require 'module'
+local gfx = require 'srf.gfx'
 
 --[[
 local lab = gfx.Label()

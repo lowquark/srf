@@ -1,8 +1,9 @@
 #ifndef DB_HPP
 #define DB_HPP
 
-#include <sqlite3.h>
+#include <gdbm.h>
 #include <util/AsyncContext.hpp>
+#include <memory>
 
 namespace db {
   class DB {
@@ -17,14 +18,22 @@ namespace db {
     void close();
 
     void read(const std::string & key,
-              const std::function<void(std::string &&)> & cb);
+              const std::function<void(std::shared_ptr<std::string> &&)> & cb);
 
+    void write(const std::string & key,
+               const std::string & value);
     void write(const std::string & key,
                const std::string & value,
                const std::function<void()> & cb);
 
+    void remove(const std::string & key);
+    void remove(const std::string & key,
+                const std::function<void()> & cb);
+
+    void flush();
+
     private:
-    sqlite3 * db = NULL;
+    GDBM_FILE db_file = NULL;
   };
 }
 

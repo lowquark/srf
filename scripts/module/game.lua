@@ -1,9 +1,10 @@
 
 local gfx = require 'srf.gfx'
 local input = require 'srf.input'
+local db = require 'srf.db'
+local mp = require 'MessagePack'
 local module = require 'module'
 local inspect = require 'inspect'
-local WorldSave = require 'WorldSave'
 
 local state = require 'game.state'
 local Level = require 'game.Level'
@@ -82,28 +83,34 @@ local function load_state(st)
   end
 end
 
-local world_save = nil
+local world_save = db.KVStore()
 -- currently loaded level
 local level = nil
 
 local tm = gfx.Tilemap(32, 32)
 tm:set_tileset('file://super_tiles')
 
-local function save_game()
-  world_save:write_page('gamestate', { guy_x = guy_x, guy_y = guy_y })
-  world_save:write_page('forest', level:save_state())
+local function save_game(world_save)
+  print('saving game')
+  world_save:write('gamestate', mp.pack({ guy_x = guy_x, guy_y = guy_y }))
+  world_save:write('forest', mp.pack(level:save_state()))
 end
-local function load_game()
-  local gamestate = world_save:read_page('gamestate')
-  guy_x = gamestate.guy_x
-  guy_y = gamestate.guy_y
-
-  level = load_state(world_save:read_page('forest'))
+local function load_game(world_save)
+  world_save:read('gamestate', function(str)
+    local gamestate = mp.unpack(str)
+    guy_x = gamestate.guy_x
+    guy_y = gamestate.guy_y
+    print('loading game')
+    print(guy_x, guy_y)
+  end)
+  world_save:read('forest', function(str)
+    level = load_state(mp.unpack(str))
+  end)
 end
 
 -- creates a brand new gamestate
 local function new_game(world_save)
-  world_save:write_page('gamestate', { guy_x = 1, guy_y = 1 })
+  world_save:write('gamestate', mp.pack({ guy_x = 1, guy_y = 1 }))
 
   local l = state.Level(64, 64)
   for i=1,64*64 do
@@ -111,7 +118,8 @@ local function new_game(world_save)
       state.TileGlyph(5 + 6*16, 0x22, 0x55, 0x33, 0x11, 0x22, 0x22),
     }
   end
-  world_save:write_page('forest', l)
+  local l_str = mp.pack(l)
+  world_save:write('forest', mp.pack(l))
 end
 
 local function draw()
@@ -185,7 +193,7 @@ function handle_keydown(key)
   elseif key == input.scancode.down then
     guy_y = guy_y + 1
   elseif key == input.scancode.m then
-    save_game()
+    save_game(world_save)
     module.next(require 'module.menu')
     return
   end
@@ -216,22 +224,25 @@ function handle_keydown(key)
   draw()
 end
 function handle_quit()
-  save_game()
+  save_game(world_save)
 end
 
 local game = {}
 function game:init(save_name)
   print('game:init()')
 
-  world_save = WorldSave(save_name)
-
-  local gamestate = world_save:read_page('gamestate')
-  if gamestate then
-    load_game()
-  else
-    new_game(world_save)
-    load_game()
-  end
+  world_save:open('saves/'..save_name, function(success)
+    if success then
+      world_save:read('gamestate', function(str)
+        if str then
+          load_game(world_save)
+        else
+          new_game(world_save)
+          load_game(world_save)
+        end
+      end)
+    end
+  end)
 
   input.on('keydown', handle_keydown)
   input.on('quit', handle_quit)

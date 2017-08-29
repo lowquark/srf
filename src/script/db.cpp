@@ -43,35 +43,51 @@ namespace script {
       // must be a pointer in order to copy only once
       auto callback = std::make_shared<LuaRef>(L, 3);
 
-      db->read(key, [=](std::string && value){
-        defer([=](){
-          lua_State * L = callback->push();
-          if(L) {
-            lua_pushlstring(L, value.c_str(), value.size());
-            pcall(L, 1, 0);
-          }
-        });
+      db->read(key, [=](std::shared_ptr<std::string> && value){
+        if(value) {
+          defer([=](){
+            lua_State * L = callback->push();
+            if(L) {
+              lua_pushlstring(L, value->c_str(), value->size());
+              pcall(L, 1, 0);
+            }
+          });
+        } else {
+          defer([=](){
+            lua_State * L = callback->push();
+            if(L) {
+              lua_pushnil(L);
+              pcall(L, 1, 0);
+            }
+          });
+        }
       });
 
       return 0;
     }
     static int KVStore_write(lua_State * L) {
+      size_t value_len;
       ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
       const char * key = luaL_checkstring(L, 2);
-      const char * value = luaL_checkstring(L, 3);
-      luaL_checktype(L, 4, LUA_TFUNCTION);
+      const char * value_str = luaL_checklstring(L, 3, &value_len);
 
-      // must be a pointer in order to copy only once
-      auto callback = std::make_shared<LuaRef>(L, 4);
+      std::string value(value_str, value_len);
 
-      db->write(key, value, [=](){
-        defer([=](){
-          lua_State * L = callback->push();
-          if(L) {
-            pcall(L, 0, 0);
-          }
+      if(lua_type(L, 4) == LUA_TFUNCTION) {
+        // must be a pointer in order to copy only once
+        auto callback = std::make_shared<LuaRef>(L, 4);
+
+        db->write(key, value, [=](){
+          defer([=](){
+            lua_State * L = callback->push();
+            if(L) {
+              pcall(L, 0, 0);
+            }
+          });
         });
-      });
+      } else {
+        db->write(key, value);
+      }
 
       return 0;
     }
