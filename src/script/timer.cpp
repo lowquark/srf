@@ -9,7 +9,7 @@
 namespace script {
   namespace timer {
     class Timer;
-    struct FireTimer : public script::Action {
+    struct FireTimer : public AsyncContext::Action {
       Timer * timer;
       FireTimer(Timer * timer) : timer(timer) {}
       void operator()() override;
@@ -63,12 +63,12 @@ namespace script {
 
       // ISR, should not access member fields
       static Uint32 loop_callback(Uint32 interval, void * param) {
-        emit<FireTimer>((Timer *)param);
+        script::actx->enqueue(new FireTimer((Timer *)param));
         return interval; // call again
       }
       // ISR, should not access member fields
       static Uint32 oneshot_callback(Uint32 interval, void * param) {
-        emit<FireTimer>((Timer *)param);
+        script::actx->enqueue(new FireTimer((Timer *)param));
         return 0; // do not call again
       }
     };

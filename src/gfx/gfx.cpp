@@ -11,12 +11,20 @@
 #include <util/Image.hpp>
 #include <util/load_png.hpp>
 #include <gfx/draw.hpp>
+#include <util/AsyncContext.hpp>
 
 namespace gfx {
   static SDL_Window * window = NULL;
   static SDL_GLContext gl_ctx = NULL;
 
   static Uint32 gfx_action_event = (Uint32)-1;
+
+  template <typename T>
+  using uptr = std::unique_ptr<T>;
+  template <typename T>
+  using sptr = std::shared_ptr<T>;
+  template <typename T>
+  using wptr = std::weak_ptr<T>;
 
   uptr<TilemapShader> tilemap_shader;
   sptr<gl::Texture> tileset;
@@ -151,16 +159,18 @@ namespace gfx {
   };
   class CreateWindowAction : public Action {
     public:
+    CreateWindowAction(const CreateWindowAction &) = delete;
+    CreateWindowAction & operator=(const CreateWindowAction &) = delete;
     CreateWindowAction(int width, int height, bool fullscreen)
       : width(width)
       , height(height)
       , fullscreen(fullscreen)
       , callback(nullptr) {}
-    CreateWindowAction(int width, int height, bool fullscreen, uptr<CreateWindowCallback> && callback)
+    CreateWindowAction(int width, int height, bool fullscreen, CreateWindowCallback * callback)
       : width(width)
       , height(height)
       , fullscreen(fullscreen)
-      , callback(std::forward<decltype(callback)>(callback)) {}
+      , callback(callback) {}
 
     void operator()() override {
       bool success = create_window("srf", width, height);
@@ -173,14 +183,19 @@ namespace gfx {
     int height;
     bool fullscreen;
 
-    uptr<CreateWindowCallback> callback;
+    CreateWindowCallback * callback;
   };
   class FlushAction : public Action {
     public:
     FlushAction() = default;
-    FlushAction(uptr<FlushCallback> && callback)
-      : callback(std::forward<decltype(callback)>(callback)) {}
+    FlushAction(const FlushAction &) = delete;
+    FlushAction & operator=(const FlushAction &) = delete;
+    FlushAction(FlushCallback * callback)
+      : callback(callback) {}
 
+    ~FlushAction() {
+      delete callback;
+    }
     void operator()() override {
       if(window) {
         SDL_GL_SwapWindow(window);
@@ -190,12 +205,14 @@ namespace gfx {
     }
 
     private:
-    uptr<FlushCallback> callback;
+    FlushCallback * callback = nullptr;
   };
   class DrawTilemapAction : public Action {
     public:
-    DrawTilemapAction(const Tilemap & tilemap) : tilemap(tilemap) {}
-    DrawTilemapAction(Tilemap && tilemap) : tilemap(std::forward<decltype(tilemap)>(tilemap)) {}
+    DrawTilemapAction(const Tilemap & tilemap)
+      : tilemap(tilemap) {}
+    DrawTilemapAction(Tilemap && tilemap)
+      : tilemap((Tilemap &&)tilemap) {}
 
     void operator()() override {
       tilemap_shader->draw(tilemap, Vec2i(0, 0));
@@ -204,6 +221,16 @@ namespace gfx {
     private:
     Tilemap tilemap;
   };
+
+  void enqueue(Action * action) {
+    SDL_Event event;
+    SDL_zero(event);
+    event.type = gfx_action_event;
+    event.user.code = 0;
+    event.user.data1 = (void *)action;
+    event.user.data2 = NULL;
+    SDL_PushEvent(&event); // alledgedly thread-safe
+  }
 
   template <typename T, typename ... Args>
   static typename std::enable_if<std::is_base_of<Action, T>::value, void>::type
@@ -217,18 +244,18 @@ namespace gfx {
     SDL_PushEvent(&event); // alledgedly thread-safe
   }
 
-  void create_window(int w, int h, bool fs, uptr<CreateWindowCallback> && callback) {
-    enqueue_action<CreateWindowAction>(w, h, fs, std::forward<decltype(callback)>(callback));
+  void create_window(int w, int h, bool fs, CreateWindowCallback * cb) {
+    enqueue(new CreateWindowAction(w, h, fs, cb));
   }
-  void flush(uptr<FlushCallback> && callback) {
-    enqueue_action<FlushAction>(std::forward<decltype(callback)>(callback));
+  void flush(FlushCallback * cb) {
+    enqueue(new FlushAction(cb));
   }
 
   void draw_tilemap(const Tilemap & tilemap) {
-    enqueue_action<DrawTilemapAction>(tilemap);
+    enqueue(new DrawTilemapAction(tilemap));
   }
   void draw_tilemap(Tilemap && tilemap) {
-    enqueue_action<DrawTilemapAction>(std::forward<decltype(tilemap)>(tilemap));
+    enqueue(new DrawTilemapAction((Tilemap &&)tilemap));
   }
 
   bool handle_sdl_event(const SDL_Event * event) {

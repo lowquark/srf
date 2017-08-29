@@ -2,6 +2,7 @@
 srf: build/srf.o \
 	   build/util/Image.o \
 	   build/util/load_png.o \
+	   build/util/AsyncContext2.o \
 		 build/db/db.o \
 		 build/gfx/gfx.o \
 		 build/gfx/draw.o \

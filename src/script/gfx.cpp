@@ -8,64 +8,64 @@
 
 namespace script {
   namespace gfx {
-    struct CallCreateWindowCallback : public script::Action {
-      public:
-      CallCreateWindowCallback(bool success, LuaRef && function)
-        : success(success)
-        , lua_function(function) {}
+    struct BoolCall : public AsyncContext::Action {
+      BoolCall(LuaRef && fn, bool b)
+        : fn((LuaRef &&)fn)
+        , b(b) {}
 
       void operator()() override {
-        lua_State * L = lua_function.push();
+        lua_State * L = fn.push();
         if(L) {
-          lua_pushboolean(L, success);
+          lua_pushboolean(L, b);
           pcall(L, 1, 0);
-          lua_function.clear();
+          fn.clear();
         }
       }
 
       private:
-      bool success = false;
-      LuaRef lua_function;
+      LuaRef fn;
+      bool b = false;
     };
+    struct Call : public AsyncContext::Action {
+      Call(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
+
+      void operator()() override {
+        lua_State * L = fn.push();
+        if(L) {
+          pcall(L, 0, 0);
+          fn.clear();
+        }
+      }
+
+      private:
+      LuaRef fn;
+    };
+
     struct CreateWindowCallback : public ::gfx::CreateWindowCallback {
-      CreateWindowCallback(LuaRef && function)
-        : lua_function(function) {}
+      CreateWindowCallback(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
 
       // gfx module callback
       virtual void operator()(bool success) {
-        script::emit<CallCreateWindowCallback>(success, std::move(lua_function));
+        script::actx->enqueue(new BoolCall(std::move(fn), success));
       }
 
       private:
-      LuaRef lua_function;
+      LuaRef fn;
     };
 
-    struct CallFlushCallback : public script::Action {
-      CallFlushCallback(LuaRef && function)
-        : lua_function(function) {}
-
-      void operator()() override {
-        lua_State * L = lua_function.push();
-        if(L) {
-          pcall(L, 0, 0);
-          lua_function.clear();
-        }
-      }
-
-      private:
-      LuaRef lua_function;
-    };
     struct FlushCallback : public ::gfx::FlushCallback {
-      FlushCallback(LuaRef && function)
-        : lua_function(function) {}
+      FlushCallback(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
 
       // gfx module callback
       void operator()() override {
-        script::emit<CallFlushCallback>(std::move(lua_function));
+        script::actx->enqueue(new Call(std::move(fn)));
       }
 
       private:
-      LuaRef lua_function;
+      LuaRef fn;
     };
 
     // gfx.create_window
@@ -79,9 +79,7 @@ namespace script {
             window_size_x,
             window_size_y,
             window_fullscreen,
-            std::unique_ptr<CreateWindowCallback>(
-              new CreateWindowCallback(LuaRef(L, 4))
-            ));
+            new CreateWindowCallback(LuaRef(L, 4)));
       } else {
         ::gfx::create_window(
             window_size_x,
@@ -94,7 +92,7 @@ namespace script {
     // gfx.flush
     static int flush(lua_State * L) {
       if(lua_isfunction(L, 1)) {
-        ::gfx::flush(std::unique_ptr<FlushCallback>(new FlushCallback(LuaRef(L, 1))));
+        ::gfx::flush(new FlushCallback(LuaRef(L, 1)));
       } else {
         ::gfx::flush();
       }

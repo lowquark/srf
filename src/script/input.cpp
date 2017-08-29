@@ -210,12 +210,12 @@ namespace script {
       keyup_event.clear();
     }
 
-    struct EmitQuit : public script::Action {
+    struct EmitQuit : public AsyncContext::Action {
       void operator()() override {
         input::quit_event.emit();
       }
     };
-    struct EmitKeyDown : public script::Action {
+    struct EmitKeyDown : public AsyncContext::Action {
       unsigned int key;
       EmitKeyDown(unsigned int key) : key(key) {}
 
@@ -233,7 +233,7 @@ namespace script {
         input::keydown_event.emit(LuaPusher(key));
       }
     };
-    struct EmitKeyUp : public script::Action {
+    struct EmitKeyUp : public AsyncContext::Action {
       unsigned int key;
       EmitKeyUp(unsigned int key) : key(key) {}
 
@@ -255,13 +255,13 @@ namespace script {
     // these come in from a different thread
     bool handle_sdl_event(const SDL_Event * event) {
       if(event->type == SDL_QUIT) {
-        emit<EmitQuit>();
+        actx->enqueue(new EmitQuit);
         return true;
       } else if(event->type == SDL_KEYDOWN) {
-        emit<EmitKeyDown>(event->key.keysym.scancode);
+        actx->enqueue(new EmitKeyDown(event->key.keysym.scancode));
         return true;
       } else if(event->type == SDL_KEYUP) {
-        emit<EmitKeyUp>(event->key.keysym.scancode);
+        actx->enqueue(new EmitKeyUp(event->key.keysym.scancode));
         return true;
       }
 

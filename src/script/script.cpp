@@ -40,17 +40,6 @@ namespace script {
   AsyncContext * actx = nullptr;
   lua_State * L = NULL;
 
-  // TODO: Remove this
-  void emit(Action * event) {
-    actx->defer([=](){
-      (*event)();
-      delete event;
-    });
-  }
-  void defer(std::function<void()> && action) {
-    actx->defer(std::forward<decltype(action)>(action));
-  }
-
   static luaL_Reg module_loaders[] = {
     { "srf.input", input::luaopen },
     { "srf.gfx",   gfx::luaopen   },
@@ -128,16 +117,25 @@ namespace script {
     pcall(L, 1, 0);
   }
 
+  struct Open : public AsyncContext::Action {
+    std::string name;
+    Open(const std::string & name) : name(name) {}
+    void operator()() override {
+      open(name);
+    }
+  };
+  struct Close : public AsyncContext::Action {
+    void operator()() override {
+      close();
+    }
+  };
+
   void init() {
     actx = new AsyncContext;
-    actx->defer([](){
-      open("main");
-    });
+    actx->enqueue(new Open("main"));
   }
   void deinit() {
-    actx->defer([](){
-      close();
-    });
+    actx->enqueue(new Close);
     delete actx;
     actx = nullptr;
   }

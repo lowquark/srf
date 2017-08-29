@@ -4,33 +4,25 @@
 #include <mutex>
 #include <condition_variable>
 #include <thread>
-#include <functional>
-#include <sstream>
 #include <queue>
 
 class AsyncContext {
   public:
-  typedef std::function<void()> Action;
+  class Action {
+    public:
+    virtual ~Action() = default;
+    virtual void operator()() {}
+  };
 
-  AsyncContext()
-    : thread(&AsyncContext::task, this) {}
-  ~AsyncContext() {
-    std::stringstream ss;
-    ss << thread.get_id();
-    uint64_t id = std::stoull(ss.str());
+  AsyncContext();
+  ~AsyncContext();
 
-    defer([&](){ task_run = false; });
-    thread.join();
+  AsyncContext(const AsyncContext &) = delete;
+  AsyncContext & operator=(const AsyncContext &) = delete;
 
-    printf("thread %lu joined\n", id);
-  }
-
-  void defer(Action && c) {
-    std::unique_lock<std::mutex> lk(actions_lock);
-    actions.push(new Action(c));
-    lk.unlock();
-    actions_cv.notify_one();
-  }
+  // must be allocated with `new`
+  // will be deleted via `delete` at an unspecified point in time
+  void enqueue(Action * c);
 
   private:
   std::thread thread;
@@ -40,32 +32,7 @@ class AsyncContext {
   mutable std::mutex actions_lock;
   mutable std::condition_variable actions_cv;
 
-  void task() {
-    std::stringstream ss;
-    ss << std::this_thread::get_id();
-    uint64_t id = std::stoull(ss.str());
-
-    printf("thread %lu starting\n", id);
-
-    task_run = true;
-    while(task_run) {
-      std::unique_lock<std::mutex> lk(actions_lock);
-      while(actions.empty()) {
-        actions_cv.wait(lk);
-      }
-
-      Action * c = actions.front();
-      actions.pop();
-
-      lk.unlock();
-
-      (*c)();
-      delete c;
-      c = nullptr;
-    }
-
-    printf("thread %lu stopping\n", id);
-  }
+  void task();
 };
 
 #endif

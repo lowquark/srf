@@ -58,19 +58,12 @@ namespace gfx {
     virtual void operator()() {};
   };
 
-  template <typename T>
-  using uptr = std::unique_ptr<T>;
-  template <typename T>
-  using sptr = std::shared_ptr<T>;
-  template <typename T>
-  using wptr = std::weak_ptr<T>;
-
   // public, thread-safe messaging
-  void create_window  (int w, int h, bool fs, uptr<CreateWindowCallback> && callback = nullptr);
-  void flush          (uptr<FlushCallback> && callback = nullptr);
+  void create_window (int w, int h, bool fs, CreateWindowCallback * cb = nullptr);
+  void flush         (FlushCallback * cb = nullptr);
 
-  void draw_tilemap   (const Tilemap & tilemap);
-  void draw_tilemap   (Tilemap && tilemap);
+  void draw_tilemap  (const Tilemap & tilemap);
+  void draw_tilemap  (Tilemap && tilemap);
 
   // only used by main task
   void init();

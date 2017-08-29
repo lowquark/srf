@@ -2,92 +2,61 @@
 #include "db.hpp"
 
 namespace db {
-  DB::~DB() {
-    // join thread
+  KVStore::~KVStore() {
     close();
   }
 
-  void DB::open(const std::string & path,
-                const std::function<void(bool)> & cb) {
-    actx.defer([=](){
-      db_file = gdbm_open(path.c_str(), 1024, GDBM_WRCREAT, 0644, NULL);
-
-      if(db_file) {
-        cb(true);
-      } else {
-        cb(false);
-      }
-    });
+  bool KVStore::open(const std::string & path) {
+    db_file = gdbm_open(path.c_str(), 1024, GDBM_WRCREAT, 0644, NULL);
+    return db_file != NULL;
+  }
+  void KVStore::close() {
+    if(db_file) {
+      gdbm_close(db_file);
+      db_file = NULL;
+    }
+  }
+  bool KVStore::read(const std::string & key, std::string & value) {
+    datum keyd = { (char *)key.c_str(), (int)key.size() };
+    datum valued = gdbm_fetch(db_file, keyd);
+    if(valued.dptr) {
+      value = std::string(valued.dptr, valued.dsize);
+      free(valued.dptr);
+      return true;
+    } else {
+      return false;
+    }
+  }
+  void KVStore::write(const std::string & key, const std::string & value) {
+    datum keyd = { (char *)key.c_str(), (int)key.size() };
+    datum valued = { (char *)value.c_str(), (int)value.size() };
+    gdbm_store(db_file, keyd, valued, GDBM_REPLACE);
+  }
+  void KVStore::remove(const std::string & key) {
+    datum keyd = { (char *)key.c_str(), (int)key.size() };
+    gdbm_delete(db_file, keyd);
   }
 
-  void DB::close() {
-    actx.defer([=](){
-      if(db_file) {
-        gdbm_close(db_file);
-        db_file = NULL;
-      }
-    });
+  void AsyncKVStore::open(const std::string & path, OpenHandler * cb) {
+    actx.enqueue(new OpenAction( &db, path, cb ));
   }
 
-  void DB::read(const std::string & key,
-                const std::function<void(std::shared_ptr<std::string> &&)> & cb) {
-    actx.defer([=](){
-      if(db_file) {
-        datum keyd = { (char *)key.c_str(), (int)key.size() };
-        datum valued = gdbm_fetch(db_file, keyd);
-        if(valued.dptr) {
-          auto value = std::make_shared<std::string>(valued.dptr, valued.dsize);
-          free(valued.dptr);
-          cb(std::move(value));
-        } else {
-          cb(nullptr);
-        }
-      } else {
-        cb(nullptr);
-      }
-    });
+  void AsyncKVStore::close(FinishHandler * cb) {
+    actx.enqueue(new CloseAction( &db, cb ));
   }
 
-  void DB::write(const std::string & key,
-                 const std::string & value) {
-    actx.defer([=](){
-      if(db_file) {
-        datum keyd = { (char *)key.c_str(), (int)key.size() };
-        datum valued = { (char *)value.c_str(), (int)value.size() };
-        gdbm_store(db_file, keyd, valued, GDBM_REPLACE);
-      }
-    });
-  }
-  void DB::write(const std::string & key,
-                 const std::string & value,
-                 const std::function<void()> & cb) {
-    actx.defer([=](){
-      if(db_file) {
-        datum keyd = { (char *)key.c_str(), (int)key.size() };
-        datum valued = { (char *)value.c_str(), (int)value.size() };
-        gdbm_store(db_file, keyd, valued, GDBM_REPLACE);
-      }
-      cb();
-    });
+  void AsyncKVStore::read(const std::string & key, ReadHandler * cb) {
+    actx.enqueue(new ReadAction( &db, key, cb ));
   }
 
-  void DB::remove(const std::string & key) {
-    actx.defer([=](){
-      if(db_file) {
-        datum keyd = { (char *)key.c_str(), (int)key.size() };
-        gdbm_delete(db_file, keyd);
-      }
-    });
+  void AsyncKVStore::write(const std::string & key,
+                           const std::string & value,
+                           FinishHandler * cb) {
+    actx.enqueue(new WriteAction( &db, key, value, cb ));
   }
-  void DB::remove(const std::string & key,
-                  const std::function<void()> & cb) {
-    actx.defer([=](){
-      if(db_file) {
-        datum keyd = { (char *)key.c_str(), (int)key.size() };
-        gdbm_delete(db_file, keyd);
-      }
-      cb();
-    });
+
+  void AsyncKVStore::remove(const std::string & key, FinishHandler * cb) {
+    actx.enqueue(new RemoveAction(&db, key, cb));
   }
 }
 

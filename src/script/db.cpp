@@ -1,6 +1,7 @@
 
 #include <script/script_private.hpp>
 #include <script/luaref.hpp>
+#include <script/Call.hpp>
 
 #include <db/db.hpp>
 #include <vector>
@@ -8,101 +9,96 @@
 
 namespace script {
   namespace db {
+    class OpenHandler : public ::db::AsyncKVStore::OpenHandler {
+      LuaRef fn;
+      public:
+      OpenHandler(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
+      void operator()(bool succ) {
+        actx->enqueue(
+            new Call<bool>(std::move(fn), succ));
+      }
+    };
+    class ReadHandler : public ::db::AsyncKVStore::ReadHandler {
+      LuaRef fn;
+      public:
+      ReadHandler(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
+      void operator()(bool found, std::string && value) {
+        if(found) {
+          actx->enqueue(
+              new Call<std::string &&>(std::move(fn), (std::string &&)value));
+        } else {
+          actx->enqueue(
+              new Call<nullptr_t>(std::move(fn), nullptr));
+        }
+      }
+    };
+    class FinishHandler : public ::db::AsyncKVStore::FinishHandler {
+      LuaRef fn;
+      public:
+      FinishHandler(LuaRef && fn)
+        : fn((LuaRef &&)fn) {}
+      void operator()() {
+        actx->enqueue(new Call<>(std::move(fn)));
+      }
+    };
+
     static int KVStore_open(lua_State * L) {
-      ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
+      ::db::AsyncKVStore * db = (::db::AsyncKVStore *)luaL_checkudata(L, 1, "kvstore");
       const char * path = luaL_checkstring(L, 2);
       luaL_checktype(L, 3, LUA_TFUNCTION);
 
-      // must be a pointer in order to copy only once
-      auto callback = std::make_shared<LuaRef>(L, 3);
-
-      db->open(path, [=](bool succ){
-        defer([=](){
-          lua_State * L = callback->push();
-          if(L) {
-            lua_pushboolean(L, succ);
-            pcall(L, 1, 0);
-          }
-        });
-      });
+      db->open(path, new OpenHandler(LuaRef(L, 3)));
 
       return 0;
     }
     static int KVStore_close(lua_State * L) {
-      ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
+      ::db::AsyncKVStore * db = (::db::AsyncKVStore *)luaL_checkudata(L, 1, "kvstore");
 
       db->close();
 
       return 0;
     }
     static int KVStore_read(lua_State * L) {
-      ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
-      const char * key = luaL_checkstring(L, 2);
+      size_t key_len;
+      ::db::AsyncKVStore * db = (::db::AsyncKVStore *)luaL_checkudata(L, 1, "kvstore");
+      const char * key = luaL_checklstring(L, 2, &key_len);
       luaL_checktype(L, 3, LUA_TFUNCTION);
 
-      // must be a pointer in order to copy only once
-      auto callback = std::make_shared<LuaRef>(L, 3);
-
-      db->read(key, [=](std::shared_ptr<std::string> && value){
-        if(value) {
-          defer([=](){
-            lua_State * L = callback->push();
-            if(L) {
-              lua_pushlstring(L, value->c_str(), value->size());
-              pcall(L, 1, 0);
-            }
-          });
-        } else {
-          defer([=](){
-            lua_State * L = callback->push();
-            if(L) {
-              lua_pushnil(L);
-              pcall(L, 1, 0);
-            }
-          });
-        }
-      });
+      db->read(std::string(key, key_len), new ReadHandler(LuaRef(L, 3)));
 
       return 0;
     }
     static int KVStore_write(lua_State * L) {
-      size_t value_len;
-      ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
-      const char * key = luaL_checkstring(L, 2);
-      const char * value_str = luaL_checklstring(L, 3, &value_len);
-
-      std::string value(value_str, value_len);
+      size_t key_len, value_len;
+      ::db::AsyncKVStore * db = (::db::AsyncKVStore *)luaL_checkudata(L, 1, "kvstore");
+      const char * key = luaL_checklstring(L, 2, &key_len);
+      const char * value = luaL_checklstring(L, 3, &value_len);
 
       if(lua_type(L, 4) == LUA_TFUNCTION) {
-        // must be a pointer in order to copy only once
-        auto callback = std::make_shared<LuaRef>(L, 4);
-
-        db->write(key, value, [=](){
-          defer([=](){
-            lua_State * L = callback->push();
-            if(L) {
-              pcall(L, 0, 0);
-            }
-          });
-        });
+        db->write(std::string(key, key_len),
+                  std::string(value, value_len),
+                  new FinishHandler(LuaRef(L, 4)));
       } else {
-        db->write(key, value);
+        db->write(std::string(key, key_len),
+                  std::string(value, value_len));
       }
 
       return 0;
     }
     static int KVStore_gc(lua_State * L) {
-      ::db::DB * db = (::db::DB *)luaL_checkudata(L, 1, "kvstore");
-      db->~DB();
+      ::db::AsyncKVStore * db = (::db::AsyncKVStore *)luaL_checkudata(L, 1, "kvstore");
+      db->~AsyncKVStore();
       return 0;
     }
 
     static int KVStore(lua_State * L) {
-      ::db::DB * d = (::db::DB *)lua_newuserdata(L, sizeof(*d));
+      ::db::AsyncKVStore * d = (::db::AsyncKVStore *)lua_newuserdata(L, sizeof(*d));
         luaL_getmetatable(L, "kvstore");
           lua_setmetatable(L, -2);
 
-      new (d) ::db::DB;
+      new (d) ::db::AsyncKVStore;
 
       return 1;
     }
