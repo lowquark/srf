@@ -6,138 +6,75 @@ local mp = require 'MessagePack'
 local module = require 'module'
 local inspect = require 'inspect'
 
-local state = require 'game.state'
-local Level = require 'game.Level'
-local Object = require 'game.Object'
+local object = require 'game.object'
+local parts = require 'game.parts'
+local gen = require 'game.gen'
+local level = require 'game.level'
 
-local guy_x = 1
-local guy_y = 1
-
---[[
--- tiles
-local hl_terrain = require('Field')(0, 0, 31, 31, 'badness')
-for y=0,31 do
-  for x=0,31 do
-    local p = 20
-    if x > 10 then
-      p = 2
-    end
-
-    if math.random(p) ~= 1 then
-      hl_terrain:set(x, y, 'forest')
-    end
-  end
-end
-
---local tree_field = require('Field')(0, 0, 15, 15, tree_indices[1])
-local tile_field = hl_terrain:copy()
-tile_field:map(function(val)
-  if val == 'forest' then
-    local r = math.random(6)
-    if r <= 3 then
-      return tiles.Grass()
-    else
-      return tiles.Path()
-    end
-  else
-    return tiles.Badness()
-  end
-end)
-
-local object_field = hl_terrain:copy()
-object_field:map(function(val)
-  if val == 'forest' then
-    local r = math.random(6)
-    if r <= 3 then
-      return objects.NiceTree()
-    elseif r <= 4 then
-      return objects.MeanTree()
-    end
-  end
-end)
-]]
-
-local function load_state(st)
-  if st.__type == 'Level' then
-    local w = st.width
-    local h = st.height
-    local tiles = {}
-    for i=1,w*h do
-      if st.tiles[i] then
-        tiles[i] = load_state(st.tiles[i])
-      end
-    end
-    return Level(w, h, tiles)
-  elseif st.__type == 'Object' then
-    local o = Object()
-    for k,part_st in ipairs(st) do
-      o:attach(load_state(part_st))
-    end
-    return o
-  else
-    local t = {}
-    for k,v in pairs(st) do
-      t[k] = v
-    end
-    return t
-  end
-end
-
-local world_save = db.KVStore()
 -- currently loaded level
-local level = nil
+local the_level = nil
 
-local tm = gfx.Tilemap(32, 32)
-tm:set_tileset('file://super_tiles')
+local guy_x = nil
+local guy_y = nil
+
+
+local function save_part(o, p)
+  return { p:save() }
+end
+local function load_part(o, pstate)
+  local part_name = pstate[1]
+  return parts[part_name](o, unpack(pstate))
+end
+
+local function save_object(level, o)
+  return object.save(o, save_part)
+end
+local function load_object(level, ostate)
+  return object.load(ostate, load_part)
+end
+
 
 local function save_game(world_save)
-  print('saving game')
+  print('save_game()')
   world_save:write('gamestate', mp.pack({ guy_x = guy_x, guy_y = guy_y }))
-  world_save:write('forest', mp.pack(level:save_state()))
+
+  local lstate = level.save(the_level, save_object)
+  world_save:write('starting_area', mp.pack(lstate))
 end
 local function load_game(world_save, on_finish)
+  print('load_game()')
   world_save:read('gamestate', function(str)
     local gamestate = mp.unpack(str)
     guy_x = gamestate.guy_x
     guy_y = gamestate.guy_y
-    print('loading game')
-    print(guy_x, guy_y)
   end)
-  world_save:read('forest', function(str)
-    level = load_state(mp.unpack(str))
-
+  world_save:read('starting_area', function(str)
+    the_level = level.load(mp.unpack(str), load_object)
     on_finish()
   end)
 end
-
--- creates a brand new gamestate
 local function new_game(world_save)
+  print('new_game()')
   world_save:write('gamestate', mp.pack({ guy_x = 1, guy_y = 1 }))
 
-  local l = state.Level(64, 64)
-  for i=1,64*64 do
-    l.tiles[i] = state.Object{
-      state.TileGlyph(5 + 6*16, 0x22, 0x55, 0x33, 0x11, 0x22, 0x22),
-    }
-  end
-  local l_str = mp.pack(l)
-  world_save:write('forest', mp.pack(l))
+  gen.generate_level(world_save, 'starting_area')
 end
 
+local world_save = db.KVStore()
+
+local tm = gfx.Tilemap(32, 32)
+tm:set_tileset('file://super_tiles')
+
 local function draw()
-  if level then
+  if the_level then
     for y=1,32 do
       for x=1,32 do
-        local idx = x + (y - 1) * level.width
+        local idx = x + (y - 1) * the_level.width
 
-        local tile_obj = level.tiles[idx]
+        local tile_obj = the_level.tiles[idx]
 
-        local tile_glyph
-        if tile_obj then
-          tile_glyph = tile_obj[1] --TODO: Not like this
-        else
-          tile_glyph = state.TileGlyph()
-        end
+        local tile_glyph = {}
+        object.message(tile_obj, 'tile_glyph', tile_glyph)
 
         tm:set_index(x - 1, y - 1, tile_glyph.index)
         tm:set_foreground(x - 1, y - 1, tile_glyph.color.r,
@@ -200,10 +137,10 @@ function handle_keydown(key)
     return
   end
 
-  if guy_x >= 0 and guy_x < level.width and
-     guy_y >= 0 and guy_y < level.height then
-    local idx = guy_x + guy_y * level.width + 1
-    local tile = level.tiles[idx]
+  if guy_x >= 0 and guy_x < the_level.width and
+     guy_y >= 0 and guy_y < the_level.height then
+    local idx = guy_x + guy_y * the_level.width + 1
+    local tile = the_level.tiles[idx]
 
     if tile and tile[1] then
       tile[1].color.r = 0xFF

@@ -1,24 +1,24 @@
 
 local state = {}
 
-function state.Object(part_state_list)
+function state.Object(parts)
   local o = { __type = 'Object' }
-  if part_state_list then
-    for i,v in ipairs(part_state_list) do
+  if parts then
+    for i,v in ipairs(parts) do
       o[i] = v
     end
   end
   return o
 end
-function state.Level(w, h)
+function state.Level(w, h, tiles, objects)
   return {
     __type = 'Level',
     width = w,
     height = h,
     -- indexed list of tiles, Object[x + width * y]
-    tiles = {},
+    tiles = tiles or {},
     -- simple list of game objects, Object[]
-    objects = {},
+    objects = objects or {},
   }
 end
 

@@ -103,7 +103,7 @@ namespace script {
     luaL_openlibs(L);
 
     lua_getglobal(L, "package");
-      lua_pushstring(L, "./scripts/?.lua");
+      lua_pushstring(L, "./scripts/?.lua;./scripts/?/init.lua");
         lua_setfield(L, -2, "path");
       lua_pushstring(L, "");
         lua_setfield(L, -2, "cpath");
