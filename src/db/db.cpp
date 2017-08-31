@@ -7,6 +7,7 @@ namespace db {
   }
 
   bool KVStore::open(const std::string & path) {
+    close();
     db_file = gdbm_open(path.c_str(), 1024, GDBM_WRCREAT, 0644, NULL);
     return db_file != NULL;
   }
@@ -17,24 +18,31 @@ namespace db {
     }
   }
   bool KVStore::read(const std::string & key, std::string & value) {
-    datum keyd = { (char *)key.c_str(), (int)key.size() };
-    datum valued = gdbm_fetch(db_file, keyd);
-    if(valued.dptr) {
-      value = std::string(valued.dptr, valued.dsize);
-      free(valued.dptr);
-      return true;
-    } else {
-      return false;
+    if(db_file) {
+      datum keyd = { (char *)key.c_str(), (int)key.size() };
+      datum valued = gdbm_fetch(db_file, keyd);
+      if(valued.dptr) {
+        value = std::string(valued.dptr, valued.dsize);
+        free(valued.dptr);
+        return true;
+      } else {
+        return false;
+      }
     }
+    return false;
   }
   void KVStore::write(const std::string & key, const std::string & value) {
-    datum keyd = { (char *)key.c_str(), (int)key.size() };
-    datum valued = { (char *)value.c_str(), (int)value.size() };
-    gdbm_store(db_file, keyd, valued, GDBM_REPLACE);
+    if(db_file) {
+      datum keyd = { (char *)key.c_str(), (int)key.size() };
+      datum valued = { (char *)value.c_str(), (int)value.size() };
+      gdbm_store(db_file, keyd, valued, GDBM_REPLACE);
+    }
   }
   void KVStore::remove(const std::string & key) {
-    datum keyd = { (char *)key.c_str(), (int)key.size() };
-    gdbm_delete(db_file, keyd);
+    if(db_file) {
+      datum keyd = { (char *)key.c_str(), (int)key.size() };
+      gdbm_delete(db_file, keyd);
+    }
   }
 
   void AsyncKVStore::open(const std::string & path, OpenHandler * cb) {
