@@ -1,6 +1,5 @@
 
-return function(o, type, color, bgcolor, index)
-  o.save = o.save or {}
+return function(o, color, bgcolor, index)
   o.message = o.message or {}
 
   function o.message.TileGlyph(op, result)
@@ -14,7 +13,7 @@ return function(o, type, color, bgcolor, index)
   local p = {}
 
   function p:save()
-    return type, color, bgcolor, index
+    return color, bgcolor, index
   end
 
   return p

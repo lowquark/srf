@@ -2,32 +2,49 @@
 local object = {}
 
 function object.create()
-  return { __parts = {} }
+  return { }
 end
 
-function object.load(ostate, load_part)
-  if ostate.parts then
-    local o = object.create()
-    for i,pstate in ipairs(ostate.parts) do
-      table.insert(o.__parts, load_part(o, pstate))
-    end
-    return o
+local function pack_noempty(...)
+  if select('#', ...) == 0 then
+    return true
   else
-    error 'invalid object state'
+    return {...}
   end
-end
-function object.save(o, save_part)
-  local state = { parts = {} }
-  for i,p in ipairs(o.__parts) do
-    table.insert(state.parts, save_part(o, p))
-  end
-  return state
 end
 
-function object.message(o, op, ...)
+function object.save(o)
+  if o.save then
+    local state = { }
+    for k,fn in pairs(o.save) do
+      state[k] = pack_noempty(fn())
+    end
+    return state
+  else
+    return nil
+  end
+end
+function object.load(ostate, part_fn)
+  local o = object.create()
+  for pname,pstate in pairs(ostate) do
+    local ctor = part_fn(pname)
+    if ctor then
+      if type(pstate) == 'table' then
+        ctor(o, unpack(pstate))
+      else
+        ctor(o)
+      end
+    else
+      print('warning: part `'..pname..'` not found')
+    end
+  end
+  return o
+end
+
+function object.message(o, ...)
   if o.message then
-    for ptype,fn in pairs(o.message) do
-      fn(op, ...)
+    for _,fn in pairs(o.message) do
+      fn(...)
     end
   end
 end

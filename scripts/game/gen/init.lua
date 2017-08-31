@@ -48,17 +48,43 @@ local mp = require 'MessagePack'
 
 local gen = {}
 
+local function tree(x, y)
+  return {
+    Position = { x, y },
+    Glyph = { { r = 0x22, g = 0x66, b = 0x33 }, 5 + 4*16 },
+    Solid = true,
+  }
+end
+local function grass_tile()
+  local fg_color = {
+    r = 0x22 + math.random(0, 0x33),
+    g = 0x55 + math.random(0, 0x11),
+    b = 0x33,
+  }
+  local bg_color = {
+    r = 0x11,
+    g = 0x22,
+    b = 0x22,
+  }
+  return {
+    TileGlyph = { fg_color, bg_color, 5 + 6*16, },
+  }
+end
+
 function gen.generate_level(world_save, loc_name)
   local tstates = {}
   local ostates = {}
 
   for i=1,64*64 do
-    tstates[i] = { parts = {
-      { 'TileGlyph', { r = 0x22, g = 0x55, b = 0x33, },
-                     { r = 0x11, g = 0x22, b = 0x22, },
-                     5 + 6*16, },
-      }
-    }
+    tstates[i] = grass_tile()
+  end
+
+  for y=1,64 do
+    for x=1,64 do
+      if math.random(1, 20) == 1 then
+        table.insert(ostates, tree(x, y))
+      end
+    end
   end
 
   local l = {

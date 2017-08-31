@@ -17,20 +17,11 @@ local the_level = nil
 local guy_x = nil
 local guy_y = nil
 
-
-local function save_part(o, p)
-  return { p:save() }
+local function save_object(o)
+  return object.save(o)
 end
-local function load_part(o, pstate)
-  local part_name = pstate[1]
-  return parts[part_name](o, unpack(pstate))
-end
-
-local function save_object(level, o)
-  return object.save(o, save_part)
-end
-local function load_object(level, ostate)
-  return object.load(ostate, load_part)
+local function load_object(ostate)
+  return object.load(ostate, function(pname) return parts[pname] end)
 end
 
 
@@ -76,40 +67,30 @@ local function draw()
         local tile_glyph = {}
         object.message(tile_obj, 'tile_glyph', tile_glyph)
 
-        tm:set_index(x - 1, y - 1, tile_glyph.index)
-        tm:set_foreground(x - 1, y - 1, tile_glyph.color.r,
-                                        tile_glyph.color.g,
-                                        tile_glyph.color.b)
-        tm:set_background(x - 1, y - 1, tile_glyph.bgcolor.r,
-                                        tile_glyph.bgcolor.g,
-                                        tile_glyph.bgcolor.b)
-
-        --[[
-        local object = object_field:get(x, y)
-        local tile = tile_field:get(x, y) or tiles.Badness()
-
-        if tile then
-          local tile_glyph = tile:message('tile_glyph', state.TileGlyph())
-          if object then
-            local glyph = object:message('glyph', state.Glyph())
-            tm:set_index(x, y, glyph.index)
-            tm:set_foreground(x, y, glyph.color.r,
-                                    glyph.color.g,
-                                    glyph.color.b)
-            tm:set_background(x, y, tile_glyph.bgcolor.r,
-                                    tile_glyph.bgcolor.g,
-                                    tile_glyph.bgcolor.b)
-          else
-            tm:set_index(x, y, tile_glyph.index)
-            tm:set_foreground(x, y, tile_glyph.color.r,
-                                    tile_glyph.color.g,
-                                    tile_glyph.color.b)
-            tm:set_background(x, y, tile_glyph.bgcolor.r,
-                                    tile_glyph.bgcolor.g,
-                                    tile_glyph.bgcolor.b)
-          end
+        if tile_glyph.index then
+          tm:set_index(x - 1, y - 1, tile_glyph.index)
+          tm:set_foreground(x - 1, y - 1, tile_glyph.color.r,
+                                          tile_glyph.color.g,
+                                          tile_glyph.color.b)
+          tm:set_background(x - 1, y - 1, tile_glyph.bgcolor.r,
+                                          tile_glyph.bgcolor.g,
+                                          tile_glyph.bgcolor.b)
         end
-        ]]
+      end
+    end
+  end
+
+  for i,o in ipairs(the_level.objects) do
+    if o.position then
+      local x = o.position.x
+      local y = o.position.y
+
+      local glyph = {}
+      object.message(o, 'glyph', glyph)
+
+      if glyph.index then
+        tm:set_index(x, y, glyph.index)
+        tm:set_foreground(x, y, glyph.color.r, glyph.color.g, glyph.color.b)
       end
     end
   end
@@ -174,6 +155,9 @@ function game:init(save_name)
     if success then
       world_save:read('gamestate', function(str)
         if str then
+          -- temporary
+          new_game(world_save)
+          --
           load_game(world_save, function()
             draw()
           end)

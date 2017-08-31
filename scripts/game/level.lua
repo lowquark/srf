@@ -9,13 +9,13 @@ function level.save(l, save_object)
   for i=1,l.width*l.height do
     local t = l.tiles[i]
     if t then
-      tst[i] = save_object(l, t)
+      tst[i] = save_object(t)
     end
   end
 
   -- save all objects
   for i,o in ipairs(l.objects) do
-    ost[i] = save_object(l, o)
+    ost[i] = save_object(o)
   end
 
   return {
@@ -39,12 +39,12 @@ function level.load(lstate, load_object)
     for i=1,w*h do
       local tstate = lstate.tiles[i]
       if tstate then
-        l.tiles[i] = load_object(l, tstate)
+        l.tiles[i] = load_object(tstate)
       end
     end
 
     for i,ostate in ipairs(lstate.objects) do
-      l.objects[i] = load_object(l, ostate)
+      l.objects[i] = load_object(ostate)
     end
 
     return l
