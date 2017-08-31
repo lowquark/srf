@@ -1,8 +1,10 @@
-run
-srf
+/run
+/srf
+/srf.log
+/srf.log.data
+/valgrind_suppressions.txt
+/saves/
+/world/
 *.swp
 *.swo
 *.o
-valgrind_suppressions.txt
-saves/
-world/

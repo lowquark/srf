@@ -2,6 +2,7 @@
 local gfx = require 'srf.gfx'
 local input = require 'srf.input'
 local db = require 'srf.db'
+local log = require 'srf.log'
 local mp = require 'MessagePack'
 local module = require 'module'
 local inspect = require 'inspect'
@@ -26,14 +27,14 @@ end
 
 
 local function save_game(world_save)
-  print('save_game()')
+  log('saving game...')
   world_save:write('gamestate', mp.pack({ guy_x = guy_x, guy_y = guy_y }))
 
   local lstate = level.save(the_level, save_object)
   world_save:write('starting_area', mp.pack(lstate))
 end
 local function load_game(world_save, on_finish)
-  print('load_game()')
+  log('loading game...')
   world_save:read('gamestate', function(str)
     local gamestate = mp.unpack(str)
     guy_x = gamestate.guy_x
@@ -45,7 +46,7 @@ local function load_game(world_save, on_finish)
   end)
 end
 local function new_game(world_save)
-  print('new_game()')
+  log('generating new game...')
   world_save:write('gamestate', mp.pack({ guy_x = 1, guy_y = 1 }))
 
   gen.generate_level(world_save, 'starting_area')
@@ -131,7 +132,7 @@ function handle_keydown(key)
   --[[
   local tile = tile_field:get(guy_x, guy_y)
   if tile and tile:message('bad').bad then
-    print('you fuckin died in the badness')
+    log('you fuckin died in the badness')
     -- delete save
     gamesaves.delete('dracula')
     -- create morgue file
@@ -149,7 +150,7 @@ end
 
 local game = {}
 function game:init(save_name)
-  print('game:init()')
+  log('game:init()')
 
   world_save:open('saves/'..save_name, function(success)
     if success then
@@ -176,7 +177,7 @@ function game:init(save_name)
 end
 
 function game:deinit()
-  print('game:deinit()')
+  log('game:deinit()')
 
   input.off('keydown', handle_keydown)
   input.off('quit', handle_quit)

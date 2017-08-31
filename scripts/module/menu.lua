@@ -1,6 +1,7 @@
 
 local gfx = require 'srf.gfx'
 local input = require 'srf.input'
+local log = require 'srf.log'
 
 local module = require 'module'
 local gamesaves = require 'gamesaves'
@@ -68,7 +69,7 @@ end
 
 local menu = {}
 function menu:init()
-  print('menu:init()')
+  log('menu:init()')
 
   input.on('keydown', handle_keydown)
   input.on('quit', handle_quit)
@@ -76,7 +77,7 @@ function menu:init()
   draw()
 end
 function menu:deinit()
-  print('menu:deinit()')
+  log('menu:deinit()')
 
   input.off('keydown', handle_keydown)
   input.off('quit', handle_quit)
